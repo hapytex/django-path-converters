@@ -1,5 +1,7 @@
+from datetime import date
 import re
 from django.apps import apps
+from django.db.models import Model
 from django.shortcuts import get_object_or_404
 from django.urls import register_converter
 
@@ -34,6 +36,7 @@ class DateConverter(BaseConverter):
     name = 'date'
     date_format = '%Y-%m-%d'
     regex = '[0-9]{4}[-](?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12][0-9]|3[01])'
+    accepts = (date,)
 
     def to_python(self, value):
         return datetime.strptime(value, self.date_format).date()
@@ -57,6 +60,7 @@ class DateRangeConverter(BaseConverter):
 class ModelConverter(BaseConverter):
     name = 'model'
     regex = '[^/]+/[^/]+'
+    accepts = (Model, type(Model), )
 
     def to_python(self, value):
         app_label, model_name = value.split('/', 1)
@@ -71,6 +75,7 @@ class ModelConverter(BaseConverter):
 class ObjectConverter(ModelConverter):
     name = 'object'
     regex = '[^/]+/[^/]+/[^/]+'
+    accepts = (Model,)
 
     def to_python(self, value):
         model, pk = value.rsplit('/', 1)
