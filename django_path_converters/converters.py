@@ -38,9 +38,9 @@ class PathConverter(type):
         return {
             'name': f'`{cls.name}`',
             'regex': f'`{cls.regex}`',
-            'examples': '<br>'.join(f'`{ex}`' for ex in cls.examples),
-            'type': cls.accepts[0].__qualname__,
-            'accepts': '<br>'.join(k.__qualname__ for k in cls.accepts),
+            'examples': '\n'.join(f'`{ex}`' for ex in cls.examples),
+            'type': f'`{cls.accepts[0].__qualname__}`',
+            'accepts': '\n'.join(f'`{k.__qualname__}`' for k in cls.accepts),
         }
 
 
