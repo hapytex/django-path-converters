@@ -11,6 +11,10 @@ class PathConverter(type):
         if 'regex' in attrs:
             # validate regex
             re.compile(attrs['regex'])
+        examples = attrs['examples']
+        # wrap in a tuple in case of a single example
+        if isinstance(examples, str):
+            attrs['examples'] = (examples,)
         klass = super().__new__(name, bases, attrs)
         if 'name' in attrs:
             register_converter(klass, attrs[name])
@@ -37,6 +41,7 @@ class DateConverter(BaseConverter):
     date_format = '%Y-%m-%d'
     regex = '[0-9]{4}[-](?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12][0-9]|3[01])'
     accepts = (date,)
+    examples = '2023-01-21'
 
     def to_python(self, value):
         return datetime.strptime(value, self.date_format).date()
@@ -49,17 +54,20 @@ class MonthConverter(DateConverter):
     name = 'month'
     date_format = '%Y-%m'
     regex = '[0-9]{4}[-](?:0?[1-9]|1[0-2])'
+    examples = '2023-01'
 
 
 class WeekConverter(DateConverter):
     name = 'week'
     date_format = '%Y-W%V'
     regex = '[0-9]{4}[-]W(?:0?[1-9]|[1-4][0-9]|5[0-3])'
+    examples = '2023-W03'
 
 
 class DateRangeConverter(BaseConverter):
     name = 'date_range'
     regex = '/'.join((DateConverter.regex,)*2)
+    examples = '2023-01-21/2023-03-25'
 
     def to_python(self, value):
         return tuple(map(super().to_python, value.split('/', 1)))
@@ -73,6 +81,7 @@ class ModelConverter(BaseConverter):
     name = 'model'
     regex = '[^/]+/[^/]+'
     accepts = (Model, type(Model), )
+    examples = 'auth/user'
 
     def to_python(self, value):
         app_label, model_name = value.split('/', 1)
@@ -88,6 +97,7 @@ class ObjectConverter(ModelConverter):
     name = 'object'
     regex = '[^/]+/[^/]+/[^/]+'
     accepts = (Model,)
+    examples = 'auth/user/123'
 
     def to_python(self, value):
         model, pk = value.rsplit('/', 1)
