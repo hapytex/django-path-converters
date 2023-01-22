@@ -5,12 +5,17 @@ from django.core.exceptions import AppRegistryNotReady
 from django.db.models import Model
 from django.shortcuts import get_object_or_404
 from django.urls import register_converter
+from typing import Tuple
 
 
 class PathConverter(type):
     registered = []
     check_regex = True
     check_examples = True
+
+    @property
+    def to_type(cls):
+        return cls.accepts[0]
 
     def __new__(cls, name, bases, attrs):
         if cls.check_regex and 'regex' in attrs:
@@ -29,7 +34,7 @@ class PathConverter(type):
         if cls.check_examples and examples:
             for example in examples:
                 try:
-                    instance.to_python(example)
+                    result = instance.to_python(example)
                 except (AppRegistryNotReady,):
                     pass
         return klass
@@ -39,8 +44,8 @@ class PathConverter(type):
             'name': f'`{cls.name}`',
             'regex': f'`{cls.regex}`',
             'examples': '\n'.join(f'`{ex}`' for ex in cls.examples),
-            'type': f'`{cls.accepts[0].__qualname__}`',
-            'accepts': '\n'.join(f'`{k.__qualname__}`' for k in cls.accepts),
+            'type': f'`{cls.accepts[0]}`',
+            'accepts': '\n'.join(f'`{k}`' for k in cls.accepts),
         }
 
 
@@ -97,6 +102,7 @@ class DateRangeConverter(DateConverter):
     name = 'date_range'
     regex = '/'.join((DateConverter.regex,)*2)
     examples = '2023-01-21/2023-03-25'
+    accepts = (tuple[date, date],)
 
     def to_python(self, value):
         return tuple(map(super().to_python, value.split('/', 1)))
