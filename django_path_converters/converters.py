@@ -45,6 +45,18 @@ class DateConverter(BaseConverter):
         return value.strftime(self.date_format)
 
 
+class MonthConverter(DateConverter):
+    name = 'month'
+    date_format = '%Y-%m'
+    regex = '[0-9]{4}[-](?:0?[1-9]|1[0-2])'
+
+
+class WeekConverter(DateConverter):
+    name = 'week'
+    date_format = '%Y-W%V'
+    regex = '[0-9]{4}[-]W(?:0?[1-9]|[1-4][0-9]|5[0-3])'
+
+
 class DateRangeConverter(BaseConverter):
     name = 'date_range'
     regex = '/'.join((DateConverter.regex,)*2)
