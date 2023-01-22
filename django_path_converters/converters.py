@@ -41,11 +41,11 @@ class PathConverter(type):
 
     def data_dict(cls):
         return {
-            'name': f'`{cls.name}`',
-            'regex': f'`{cls.regex}`',
-            'examples': '\n'.join(f'`{ex}`' for ex in cls.examples),
-            'type': f'`{cls.accepts[0]}`',
-            'accepts': '\n'.join(f'`{k}`' for k in cls.accepts),
+            'name': cls.name,
+            'regex': cls.regex,
+            'examples': '\n'.join(cls.examples),
+            'type': cls.to_type,
+            'accepts': cls.accepts,
         }
 
 
@@ -132,7 +132,7 @@ class ObjectConverter(ModelConverter):
     name = 'object'
     regex = '[^/]+/[^/]+/[^/]+'
     accepts = (Model,)
-    examples = 'auth/user/123'
+    examples = 'auth/user/123', 'auth/user/12'
 
     def to_python(self, value):
         model, pk = value.rsplit('/', 1)
