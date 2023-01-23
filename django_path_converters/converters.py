@@ -1,6 +1,7 @@
 from datetime import date, datetime
 import re
 from django.apps import apps
+from django.contrib.admin.utils import quote
 from django.core.exceptions import AppRegistryNotReady
 from django.db.models import Model
 from django.shortcuts import get_object_or_404
@@ -140,4 +141,4 @@ class ObjectConverter(ModelConverter):
         return get_object_or_404(model, pk=pk)
 
     def inner_to_url(self, value):
-        return f'{super().inner_to_url(value)}/{value.pk}'
+        return f'{super().inner_to_url(value)}/{quote(value.pk)}'
