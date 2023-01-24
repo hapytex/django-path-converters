@@ -10,12 +10,15 @@ def quote_df(df, col, lef='`', rig='`'):
     df[col] = lef + df[col].astype(str) + rig
 
 def expl_df(df, col):
-    df[col] = df[col].join('\n')
+    df[col] = df[col].apply(lambda xs: '\n'.join(map(str, xs)))
 
 df = pd.DataFrame([klass.data_dict() for klass in PathConverter.registered]).sort_values('name')
+
+df.rename(columns={'accepts': 'also accepts'}, inplace=True)
 
 quote_df(df, 'name', '`<', ':…>`')
 quote_df(df, 'regex')
 quote_df(df, 'type')
+expl_df(df, 'also accepts')
 
 MarkdownTableWriter(dataframe=df).write_table()

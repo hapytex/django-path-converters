@@ -47,7 +47,7 @@ class PathConverter(type):
             'regex': cls.regex,
             'examples': '\n'.join(cls.examples),
             'type': cls.to_type,
-            'accepts': cls.accepts,
+            'accepts': cls.accepts[1:],
         }
 
 
@@ -78,7 +78,7 @@ class DateTimeConverter(BaseConverter):
     name = 'datetime'
     date_format = '%Y-%m-%dT%H:%M:%S%z', '%Y-%m-%dT%H:%M:%S', '%Y%m%dT%H%M%S%z', '%Y%m%dT%H%M%S'
     regex = rf'{DATE_REGEX}T{TIME_REGEX}'
-    accepts = (datetime,)
+    accepts = (datetime, date)
     examples = '2023-01-24T19:21:18Z', '2023-01-24T19:21:18+00:00', '2023-01-24T19:47:58'
 
     def to_python(self, value, date_format=None):
