@@ -44,9 +44,9 @@ class PathConverter(type):
     def data_dict(cls):
         return {
             'name': cls.name,
-            'regex': cls.regex,
-            'examples': '\n'.join(cls.examples),
             'type': cls.to_type,
+            'examples': '\n'.join(cls.examples),
+            'regex': cls.regex,
             'accepts': cls.accepts[1:],
         }
 
