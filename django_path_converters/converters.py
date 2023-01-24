@@ -21,7 +21,7 @@ class PathConverter(type):
     def __new__(cls, name, bases, attrs):
         if cls.check_regex and 'regex' in attrs:
             # validate regex
-            re.compile(attrs['regex'])
+            rgx = re.compile(attrs['regex'])
         examples = attrs.get('examples')
         # wrap in a tuple in case of a single example
         if isinstance(examples, str):
@@ -36,6 +36,7 @@ class PathConverter(type):
             for example in examples:
                 try:
                     result = instance.to_python(example)
+                    assert rgx.fullmatch(instance.to_url(result)), f'{result} -> {instance.to_url(result)} ~ {rgx}'
                 except (AppRegistryNotReady,):
                     pass
         return klass
@@ -65,18 +66,53 @@ class BaseConverter(metaclass=PathConverter):
         return value
 
 
-class DateConverter(BaseConverter):
+COLON_REGEX = '[:]?'
+HOUR_REGEX = r'(?:[0-1]\d|2[0-4])'
+MINSEC_REGEX = r'[0-5][0-9]'
+TZ_REGEX = rf'(?:Z|[+-]{HOUR_REGEX}{COLON_REGEX}{MINSEC_REGEX})?'
+DATE_REGEX = r'[0-9]{4}[-](?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12][0-9]|3[01])'
+TIME_REGEX = rf'{HOUR_REGEX}{COLON_REGEX}{MINSEC_REGEX}{COLON_REGEX}{MINSEC_REGEX}{TZ_REGEX}'
+
+
+class DateTimeConverter(BaseConverter):
+    name = 'datetime'
+    date_format = '%Y-%m-%dT%H:%M:%S%z', '%Y-%m-%dT%H:%M:%S', '%Y%m%dT%H%M%S%z', '%Y%m%dT%H%M%S'
+    regex = rf'{DATE_REGEX}T{TIME_REGEX}'
+    accepts = (datetime,)
+    examples = '2023-01-24T19:21:18Z', '2023-01-24T19:21:18+00:00', '2023-01-24T19:47:58'
+
+    def to_python(self, value, date_format=None):
+        date_format = date_format or self.date_format
+        if isinstance(date_format, str):
+            date_format = (date_format,)
+            notLast = False
+        else:
+            notLast = len(date_format)
+        for date_frm in date_format:
+            try:
+                return datetime.strptime(value, date_frm)
+            except ValueError:
+                if not notLast:
+                    raise
+                notLast -= 1
+
+    def inner_to_url(self, value):
+        date_format = self.date_format
+        if not isinstance(date_format, str):
+            date_format = date_format[0]
+        return value.strftime(date_format)
+
+
+
+class DateConverter(DateTimeConverter):
     name = 'date'
     date_format = '%Y-%m-%d'
-    regex = '[0-9]{4}[-](?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12][0-9]|3[01])'
+    regex = DATE_REGEX
     accepts = (date,)
     examples = '2023-01-21'
 
     def to_python(self, value, date_format=None):
-        return datetime.strptime(value, date_format or self.date_format).date()
-
-    def inner_to_url(self, value):
-        return value.strftime(self.date_format)
+        return super().to_python(value, date_format=date_format).date()
 
 
 class MonthConverter(DateConverter):
@@ -101,7 +137,7 @@ class WeekConverter(DateConverter):
 
 class DateRangeConverter(DateConverter):
     name = 'date_range'
-    regex = '/'.join((DateConverter.regex,)*2)
+    regex = f'{DATE_REGEX}/{DATE_REGEX}'
     examples = '2023-01-21/2023-03-25'
     accepts = (tuple[date, date],)
 
