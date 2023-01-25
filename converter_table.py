@@ -21,4 +21,5 @@ quote_df(df, 'regex')
 quote_df(df, 'type')
 expl_df(df, 'also accepts')
 
-MarkdownTableWriter(dataframe=df).write_table()
+print(df.to_html())
+#MarkdownTableWriter(dataframe=df).write_table()
