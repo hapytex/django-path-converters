@@ -138,7 +138,7 @@ class WeekConverter(DateConverter):
 class DateRangeConverter(DateConverter):
     name = 'date_range'
     regex = f'{DATE_REGEX}/{DATE_REGEX}'
-    examples = '2023-01-21/2023-03-25'
+    examples = '1958-3-25/2019-11-25'
     accepts = (tuple[date, date],)
 
     def to_python(self, value):
