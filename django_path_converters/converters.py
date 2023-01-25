@@ -22,6 +22,7 @@ class PathConverter(type):
         if cls.check_regex and 'regex' in attrs:
             # validate regex
             rgx = re.compile(attrs['regex'])
+            attrs['regex'] = rgx.pattern  # might be simplified (in future)
         examples = attrs.get('examples')
         # wrap in a tuple in case of a single example
         if isinstance(examples, str):
@@ -35,6 +36,7 @@ class PathConverter(type):
         if cls.check_examples and examples:
             for example in examples:
                 try:
+                    assert rgx.fullmatch(example), f'{example} ~ {rgx}'
                     result = instance.to_python(example)
                     assert rgx.fullmatch(instance.to_url(result)), f'{result} -> {instance.to_url(result)} ~ {rgx}'
                 except (AppRegistryNotReady,):
@@ -74,6 +76,17 @@ DATE_REGEX = r'[0-9]{4}[-](?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12][0-9]|3[01])'
 TIME_REGEX = rf'{HOUR_REGEX}{COLON_REGEX}{MINSEC_REGEX}{COLON_REGEX}{MINSEC_REGEX}{TZ_REGEX}'
 
 
+class AutoSlugConverter(BaseConverter):
+    pass_str = False
+    name = 'autoslug'
+    accepts = str
+    regex = SlugConverter.regex
+    examples = 'this-is-a-slug', 'slugifying-this-str'
+
+    def to_url(self, value):
+        return slugify(value, unicode=True)
+
+
 class DateTimeConverter(BaseConverter):
     name = 'datetime'
     date_format = '%Y-%m-%dT%H:%M:%S%z', '%Y-%m-%dT%H:%M:%S', '%Y%m%dT%H%M%S%z', '%Y%m%dT%H%M%S'
@@ -87,7 +100,7 @@ class DateTimeConverter(BaseConverter):
             date_format = (date_format,)
             notLast = False
         else:
-            notLast = len(date_format)
+            notLast = len(date_format) - 1
         for date_frm in date_format:
             try:
                 return datetime.strptime(value, date_frm)
