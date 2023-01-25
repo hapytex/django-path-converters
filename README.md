@@ -6,7 +6,6 @@
 <table border="1" class="dataframe">
   <thead>
     <tr style="text-align: right;">
-      <th></th>
       <th>name</th>
       <th>type</th>
       <th>examples</th>
@@ -16,67 +15,59 @@
   </thead>
   <tbody>
     <tr>
-      <th>0</th>
-      <td>`&lt;autoslug:…&gt;`</td>
-      <td>`&lt;class 'str'&gt;`</td>
+      <td><code>&lt;autoslug:…&gt;</code></td>
+      <td><code>&lt;class &#x27;str&#x27;&gt;</code></td>
       <td>this-is-a-slug\nslugifying-this-str</td>
-      <td>`[-a-zA-Z0-9_]+`</td>
+      <td><code>[-a-zA-Z0-9_]+</code></td>
       <td></td>
     </tr>
     <tr>
-      <th>2</th>
-      <td>`&lt;date:…&gt;`</td>
-      <td>`&lt;class 'datetime.date'&gt;`</td>
+      <td><code>&lt;date:…&gt;</code></td>
+      <td><code>&lt;class &#x27;datetime.date&#x27;&gt;</code></td>
       <td>2023-01-21</td>
-      <td>`[0-9]{4}[-](?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12][0-9]|3[01])`</td>
+      <td><code>[0-9]{4}[-](?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12][0-9]|3[01])</code></td>
       <td></td>
     </tr>
     <tr>
-      <th>5</th>
-      <td>`&lt;date_range:…&gt;`</td>
-      <td>`tuple[datetime.date, datetime.date]`</td>
+      <td><code>&lt;date_range:…&gt;</code></td>
+      <td><code>tuple[datetime.date, datetime.date]</code></td>
       <td>1958-3-25/2019-11-25</td>
-      <td>`[0-9]{4}[-](?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12][0-9]|3[01])/[0-9]{4}[-](?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12][0-9]|3[01])`</td>
+      <td><code>[0-9]{4}[-](?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12][0-9]|3[01])/[0-9]{4}[-](?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12][0-9]|3[01])</code></td>
       <td></td>
     </tr>
     <tr>
-      <th>1</th>
-      <td>`&lt;datetime:…&gt;`</td>
-      <td>`&lt;class 'datetime.datetime'&gt;`</td>
+      <td><code>&lt;datetime:…&gt;</code></td>
+      <td><code>&lt;class &#x27;datetime.datetime&#x27;&gt;</code></td>
       <td>2023-01-24T19:21:18Z\n2023-01-24T19:21:18+00:00\n2023-01-24T19:47:58</td>
-      <td>`[0-9]{4}[-](?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12][0-9]|3[01])T(?:[0-1]\d|2[0-4])[:]?[0-5][0-9][:]?[0-5][0-9](?:Z|[+-](?:[0-1]\d|2[0-4])[:]?[0-5][0-9])?`</td>
-      <td>&lt;class 'datetime.date'&gt;</td>
+      <td><code>[0-9]{4}[-](?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12][0-9]|3[01])T(?:[0-1]\d|2[0-4])[:]?[0-5][0-9][:]?[0-5][0-9](?:Z|[+-](?:[0-1]\d|2[0-4])[:]?[0-5][0-9])?</code></td>
+      <td><class 'datetime.date'></td>
     </tr>
     <tr>
-      <th>6</th>
-      <td>`&lt;model:…&gt;`</td>
-      <td>`&lt;class 'django.db.models.base.Model'&gt;`</td>
+      <td><code>&lt;model:…&gt;</code></td>
+      <td><code>&lt;class &#x27;django.db.models.base.Model&#x27;&gt;</code></td>
       <td>auth/user</td>
-      <td>`[^/]+/[^/]+`</td>
-      <td>&lt;class 'django.db.models.base.ModelBase'&gt;</td>
+      <td><code>[^/]+/[^/]+</code></td>
+      <td><class 'django.db.models.base.ModelBase'></td>
     </tr>
     <tr>
-      <th>3</th>
-      <td>`&lt;month:…&gt;`</td>
-      <td>`&lt;class 'datetime.date'&gt;`</td>
+      <td><code>&lt;month:…&gt;</code></td>
+      <td><code>&lt;class &#x27;datetime.date&#x27;&gt;</code></td>
       <td>2023-01</td>
-      <td>`[0-9]{4}[-](?:0?[1-9]|1[0-2])`</td>
+      <td><code>[0-9]{4}[-](?:0?[1-9]|1[0-2])</code></td>
       <td></td>
     </tr>
     <tr>
-      <th>7</th>
-      <td>`&lt;object:…&gt;`</td>
-      <td>`&lt;class 'django.db.models.base.Model'&gt;`</td>
+      <td><code>&lt;object:…&gt;</code></td>
+      <td><code>&lt;class &#x27;django.db.models.base.Model&#x27;&gt;</code></td>
       <td>auth/user/123\nauth/user/12</td>
-      <td>`[^/]+/[^/]+/[^/]+`</td>
+      <td><code>[^/]+/[^/]+/[^/]+</code></td>
       <td></td>
     </tr>
     <tr>
-      <th>4</th>
-      <td>`&lt;week:…&gt;`</td>
-      <td>`&lt;class 'datetime.date'&gt;`</td>
+      <td><code>&lt;week:…&gt;</code></td>
+      <td><code>&lt;class &#x27;datetime.date&#x27;&gt;</code></td>
       <td>2023-W03</td>
-      <td>`[0-9]{4}[-]W(?:0?[1-9]|[1-4][0-9]|5[0-3])`</td>
+      <td><code>[0-9]{4}[-]W(?:0?[1-9]|[1-4][0-9]|5[0-3])</code></td>
       <td></td>
     </tr>
   </tbody>
