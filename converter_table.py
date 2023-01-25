@@ -4,6 +4,26 @@ from pytablewriter import MarkdownTableWriter
 import pandas as pd
 from django.utils.html import escape
 from functools import partial
+from types import GenericAlias
+
+
+def str_type(typ):
+    if isinstance(typ, GenericAlias):
+        return str(typ)
+    if typ.__module__ and typ.__module__ != 'builtins':
+        return f'{typ.__module__}.{typ.__qualname__}'
+    return typ.__qualname__
+
+
+def to_str(text):
+    if isinstance(text, type):
+        return str_type(text)
+    if isinstance(text, (tuple, list)):
+        maps = tuple(map(to_str, text))
+        if len(maps) == 1:
+            return f'({maps[0]}, )'
+        return f"({', '.join(maps)})"
+    return str(text)
 
 
 def quot_type(df, col):
@@ -16,7 +36,7 @@ def expl_df(df, col):
     df[col] = df[col].apply(lambda xs: '\n'.join(map(str, xs)))
 
 def codify(text, lef='', rig=''):
-    text = str(text)
+    text = to_str(text)
     if text:
         return '<br/>'.join(f'<code>{escape(lef+lin+rig)}</code>' for lin in text.split('\n'))
     return ''
