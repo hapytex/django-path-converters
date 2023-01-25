@@ -16,8 +16,7 @@ def expl_df(df, col):
     df[col] = df[col].apply(lambda xs: '\n'.join(map(str, xs)))
 
 def codify(text, lef='', rig=''):
-    esc = escape(lef+str(text)+rig).replace("\n", "<br>")
-    return f'<code>{esc}</code>'
+    return '<br/>'.join(f'<code>{escape(lef+lin+rig)}</code>' for lin in str(text).split('\n'))
 
 df = pd.DataFrame([klass.data_dict() for klass in PathConverter.registered]).sort_values('name')
 
