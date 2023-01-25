@@ -16,7 +16,8 @@ def expl_df(df, col):
     df[col] = df[col].apply(lambda xs: '\n'.join(map(str, xs)))
 
 def codify(text, lef='', rig=''):
-    return f'<code>{escape(lef+str(text)+rig)}</code>'
+    esc = escape(lef+str(text)+rig).replace("\n", "<br>")
+    return f'<code>{esc}</code>'
 
 df = pd.DataFrame([klass.data_dict() for klass in PathConverter.registered]).sort_values('name')
 
@@ -33,5 +34,7 @@ print(df.to_html(formatters={
     'name': partial(codify, lef='<', rig=':…>'),
     'regex': codify,
     'type': codify,
+    'also accepts': codify,
+    'examples': codify,
 }, index=False, escape=False))
 #MarkdownTableWriter(dataframe=df).write_table()
