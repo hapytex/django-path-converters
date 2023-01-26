@@ -6,6 +6,8 @@ from django.core.exceptions import AppRegistryNotReady
 from django.db.models import Model
 from django.shortcuts import get_object_or_404
 from django.urls import register_converter
+from django.urls.converters import SlugConverter
+from django.utils.text import slugify
 from typing import Tuple
 
 
@@ -23,6 +25,8 @@ class PathConverter(type):
             # validate regex
             rgx = re.compile(attrs['regex'])
             attrs['regex'] = rgx.pattern  # might be simplified (in future)
+        if 'accepts' in attrs and not isinstance(attrs['accepts'], (list, tuple)):
+            attrs['accepts'] = (attrs['accepts'],)
         examples = attrs.get('examples')
         # wrap in a tuple in case of a single example
         if isinstance(examples, str):
@@ -84,7 +88,7 @@ class AutoSlugConverter(BaseConverter):
     examples = 'this-is-a-slug', 'slugifying-this-str'
 
     def to_url(self, value):
-        return slugify(value, unicode=True)
+        return slugify(value, allow_unicode=True)
 
 
 class DateTimeConverter(BaseConverter):
@@ -151,7 +155,7 @@ class WeekConverter(DateConverter):
 class DateRangeConverter(DateConverter):
     name = 'date_range'
     regex = f'{DATE_REGEX}/{DATE_REGEX}'
-    examples = '2023-01-21/2023-03-25'
+    examples = '1958-3-25/2019-11-25'
     accepts = (tuple[date, date],)
 
     def to_python(self, value):
