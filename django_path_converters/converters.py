@@ -169,7 +169,7 @@ class DateRangeConverter(DateConverter):
 class ModelConverter(BaseConverter):
     name = 'model'
     regex = '[^/]+/[^/]+'
-    accepts = (Model, type(Model), )
+    accepts = (type(Model), Model, )
     examples = 'auth/user'
 
     def to_python(self, value):
@@ -187,10 +187,13 @@ class ObjectConverter(ModelConverter):
     regex = '[^/]+/[^/]+/[^/]+'
     accepts = (Model,)
     examples = 'auth/user/123', 'auth/user/12'
+    manager = None
 
     def to_python(self, value):
-        model, pk = value.rsplit('/', 1)
+        app_name, model, pk = value.split('/', 2)
         model = super().to_python(model)
+        if self.manager is not None:
+            model = getattr(model, manager)
         return get_object_or_404(model, pk=pk)
 
     def inner_to_url(self, value):
