@@ -1,14 +1,20 @@
 from datetime import date, datetime
 import re
-from django.apps import apps
+from enum import Enum
+from functools import partial
+
 from django.contrib.admin.utils import quote
 from django.core.exceptions import AppRegistryNotReady
+from django.core.validators import EmailValidator
 from django.db.models import Model
+from django.db.models.enums import ChoicesMeta
 from django.shortcuts import get_object_or_404
 from django.urls import register_converter
 from django.urls.converters import SlugConverter
 from django.utils.text import slugify
-from typing import Tuple
+from django.db.models.options import Options
+
+from django_path_converters.lazymodelobject import ModelLazyObject
 
 
 class PathConverter(type):
@@ -18,7 +24,8 @@ class PathConverter(type):
 
     @property
     def to_type(cls):
-        return cls.accepts[0]
+        if cls.accepts:
+            return cls.accepts[0]
 
     def __new__(cls, name, bases, attrs):
         if cls.check_regex and 'regex' in attrs:
@@ -34,13 +41,16 @@ class PathConverter(type):
         klass = super().__new__(cls, name, bases, attrs)
         name = attrs.get('name')
         if name:
+            if klass.name_prefix:
+                name = f'{klass.name_prefix}{name}'
+                klass.name = name
             register_converter(klass, name)
             cls.registered.append(klass)
         instance = klass()
         if cls.check_examples and examples:
             for example in examples:
                 try:
-                    assert rgx.fullmatch(example), f'{example} ~ {rgx}'
+                    assert rgx.fullmatch(example), f'{example} ~ {rgx.pattern}'
                     result = instance.to_python(example)
                     assert rgx.fullmatch(instance.to_url(result)), f'{result} -> {instance.to_url(result)} ~ {rgx}'
                 except (AppRegistryNotReady,):
@@ -58,6 +68,7 @@ class PathConverter(type):
 
 
 class BaseConverter(metaclass=PathConverter):
+    name_prefix = ''
     pass_str = True
 
     def to_python(self, value):
@@ -147,8 +158,8 @@ class WeekConverter(DateConverter):
     week_format = '%u'
     week_day = '1'
 
-    def to_python(self, value):
-        return super().to_python(f'{value}{self.week_day}', f'{self.date_format}{self.week_format}')
+    def to_python(self, value, date_format=None):
+        return super().to_python(f'{value}{self.week_day}', date_format or f'{self.date_format}{self.week_format}')
 
 
 
@@ -158,8 +169,8 @@ class DateRangeConverter(DateConverter):
     examples = '1958-3-25/2019-11-25'
     accepts = (tuple[date, date],)
 
-    def to_python(self, value):
-        return tuple(map(super().to_python, value.split('/', 1)))
+    def to_python(self, value, date_format=None):
+        return tuple(map(partial(super().to_python, date_format=date_format), value.split('/', 1)))
 
     def inner_to_url(self, value):
         frm, to = value
@@ -169,10 +180,11 @@ class DateRangeConverter(DateConverter):
 class ModelConverter(BaseConverter):
     name = 'model'
     regex = '[^/]+/[^/]+'
-    accepts = (Model, type(Model), )
+    accepts = (Model, type(Model), Options)
     examples = 'auth/user'
 
     def to_python(self, value):
+        from django.apps import apps
         app_label, model_name = value.split('/', 1)
         return apps.get_model(app_label=app_label, model_name=model_name)
 
@@ -183,10 +195,13 @@ class ModelConverter(BaseConverter):
 
 
 class ObjectConverter(ModelConverter):
-    name = 'object'
+    name = 'eagerobject'
     regex = '[^/]+/[^/]+/[^/]+'
     accepts = (Model,)
     examples = 'auth/user/123', 'auth/user/12'
+
+    def create_object(self, model, pk):
+        return get_object_or_404(model, pk=pk)
 
     def to_python(self, value):
         model, pk = value.rsplit('/', 1)
@@ -195,3 +210,50 @@ class ObjectConverter(ModelConverter):
 
     def inner_to_url(self, value):
         return f'{super().inner_to_url(value)}/{quote(value.pk)}'
+
+
+class LazyObjectConverter(ObjectConverter):
+    name = 'object'
+    pk_field = 'pk'
+    check_field = True
+
+    def create_object(self, model, pk):
+        return ModelLazyObject(model, pk, pk_field=self.pk_field, check_field=self.check_field)
+
+class ChoicesConverter(BaseConverter):
+    name_prefix = 'choices_'
+
+    def __init_subclass__(cls, choices, **kwargs):
+        if isinstance(choices, ChoicesMeta):
+            choices = choices
+        super().__init_subclass__(cls, **kwargs)
+
+
+class EmailConverter(BaseConverter):
+    name = 'email'
+    regex = f'.*' # f'(?:{EmailValidator.user_regex.pattern})@(?:{EmailValidator.domain_regex.pattern})'
+    accepts = str
+    examples = ('info@djangoproject.com', 'test@foo.org')
+
+class EnumConverter(BaseConverter):
+    name_prefix = 'enum_'
+    enum_class = None
+
+    def __init_subclass__(cls, enum_class=None, name=None, **kwargs):
+        cls.enum_class = enum_class
+        if not issubclass(enum_class, Enum):
+            raise ValueError('The enum_class must be a subclass of Enum')
+        setattr(cls, 'regex', '|'.join(re.escape(v) for v in enum_class.values))
+        if name is not None:
+            register_converter(cls, f'{cls.name_prefix}{name}')
+        super().__init_subclass__(**kwargs)
+
+    def to_python(self, value):
+        if isinstance(value, str):
+            return self.enum_class(value)
+        return super().to_python(value)
+
+    def inner_to_url(self, value):
+        if isinstance(value, self.enum_class):
+            return value.value
+        return value

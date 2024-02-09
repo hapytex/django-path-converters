@@ -41,22 +41,23 @@ def codify(text, lef='', rig=''):
         return '<br/>'.join(f'<code>{escape(lef+lin+rig)}</code>' for lin in text.split('\n'))
     return ''
 
-df = pd.DataFrame([klass.data_dict() for klass in PathConverter.registered]).sort_values('name')
+if __name__ == '__main__':
+    df = pd.DataFrame([klass.data_dict() for klass in PathConverter.registered]).sort_values('name')
 
-df.rename(columns={'accepts': 'also accepts'}, inplace=True)
+    df.rename(columns={'accepts': 'also accepts'}, inplace=True)
 
-# quote_df(df, 'name', '`<', ':…>`')
-# quote_df(df, 'regex')
-# quote_df(df, 'type')
-expl_df(df, 'also accepts')
+    # quote_df(df, 'name', '`<', ':…>`')
+    # quote_df(df, 'regex')
+    # quote_df(df, 'type')
+    expl_df(df, 'also accepts')
 
-# df = df.set_index('name')
+    # df = df.set_index('name')
 
-print(df.to_html(formatters={
-    'name': partial(codify, lef='<', rig=':…>'),
-    'regex': codify,
-    'type': codify,
-    'also accepts': codify,
-    'examples': codify,
-}, index=False, escape=False))
-#MarkdownTableWriter(dataframe=df).write_table()
+    print(df.to_html(formatters={
+        'name': partial(codify, lef='<', rig=':…>'),
+        'regex': codify,
+        'type': codify,
+        'also accepts': codify,
+        'examples': codify,
+    }, index=False, escape=False))
+    #MarkdownTableWriter(dataframe=df).write_table()

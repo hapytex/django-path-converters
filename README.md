@@ -1,5 +1,16 @@
 # `django-path-converters`
 
+An underestimated part of Django is its *path converters*: a way to define a certain pattern for a URL once, together with
+mapping functions from and to that pattern.
+
+These can then be plugged in into the URL paths one defines, and thus makes querying more convenient. The pattern can also
+often be defined more restricted, since the work to define a pattern is done once, and is thus not very cumbersome.
+
+This package aims to provide some general purpose path converters. Probably the most sophisticated one are lazy model
+object loads: these will *not* evaluate an object, unless it is necessary, and thus therefore could save some queries.
+
+
+
 ## Overview of the defined path converters
 
 <!-- path converters -->
@@ -43,11 +54,25 @@
       <td><code>&lt;class &#x27;datetime.date&#x27;&gt;</code></td>
     </tr>
     <tr>
+      <td><code>&lt;eagerobject:…&gt;</code></td>
+      <td><code>django.db.models.base.Model</code></td>
+      <td><code>auth/user/123</code><br/><code>auth/user/12</code></td>
+      <td><code>[^/]+/[^/]+/[^/]+</code></td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><code>&lt;email:…&gt;</code></td>
+      <td><code>str</code></td>
+      <td><code>info@djangoproject.com</code><br/><code>test@foo.org</code></td>
+      <td><code>.*</code></td>
+      <td></td>
+    </tr>
+    <tr>
       <td><code>&lt;model:…&gt;</code></td>
       <td><code>django.db.models.base.Model</code></td>
       <td><code>auth/user</code></td>
       <td><code>[^/]+/[^/]+</code></td>
-      <td><code>&lt;class &#x27;django.db.models.base.ModelBase&#x27;&gt;</code></td>
+      <td><code>&lt;class &#x27;django.db.models.base.ModelBase&#x27;&gt;</code><br/><code>&lt;class &#x27;django.db.models.options.Options&#x27;&gt;</code></td>
     </tr>
     <tr>
       <td><code>&lt;month:…&gt;</code></td>
