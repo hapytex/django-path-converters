@@ -180,12 +180,13 @@ class DateRangeConverter(DateConverter):
 class ModelConverter(BaseConverter):
     name = 'model'
     regex = '[^/]+/[^/]+'
-    accepts = (Model, type(Model), Options)
+    accepts = (Model, type(Model), Options)  # queryset, manager?
     examples = 'auth/user'
 
     def to_python(self, value):
         from django.apps import apps
         app_label, model_name = value.split('/', 1)
+        # raises ValueError?
         return apps.get_model(app_label=app_label, model_name=model_name)
 
     def inner_to_url(self, value):
@@ -199,13 +200,16 @@ class ObjectConverter(ModelConverter):
     regex = '[^/]+/[^/]+/[^/]+'
     accepts = (Model,)
     examples = 'auth/user/123', 'auth/user/12'
+    manager = None
 
     def create_object(self, model, pk):
         return get_object_or_404(model, pk=pk)
 
     def to_python(self, value):
-        model, pk = value.rsplit('/', 1)
+        app_name, model, pk = value.split('/', 2)
         model = super().to_python(model)
+        if self.manager is not None:
+            model = getattr(model, manager)
         return get_object_or_404(model, pk=pk)
 
     def inner_to_url(self, value):

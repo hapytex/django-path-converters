@@ -1,9 +1,9 @@
 from django.apps import AppConfig
 
 
-class DjangoPathConvertersConfig(AppConfig):
-    name = "django_path_converters"
-    verbose_name = "Django Path Converters"
+class PathConvertersConfig(AppConfig):
+    name = 'django_path_converters'
+    verbose_name = 'Django path converters'
 
     def ready(self):
         pass
