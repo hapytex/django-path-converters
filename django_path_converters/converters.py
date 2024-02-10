@@ -180,16 +180,21 @@ class DateRangeConverter(DateConverter):
 class ModelConverter(BaseConverter):
     name = 'model'
     regex = '[^/]+/[^/]+'
-    accepts = (Model, type(Model), Options)  # queryset, manager?
+    accepts = (Model, type(Model), Options, QuerySet, Manager)
     examples = 'auth/user'
 
     def to_python(self, value):
         from django.apps import apps
         app_label, model_name = value.split('/', 1)
-        # raises ValueError?
-        return apps.get_model(app_label=app_label, model_name=model_name)
+        try:
+            return apps.get_model(app_label=app_label, model_name=model_name)
+        except LookupError as e:
+            # use a ValueError such that Django can continue looking for a match
+            raise ValueError(*e.args)
 
     def inner_to_url(self, value):
+        if isinstance(value, (Manager, QuerySet)):
+            value = value.model
         if isinstance(value, (Model, type(Model))):
             value = value._meta
         return f'{value.app_label}/{value.model_name}'
