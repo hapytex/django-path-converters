@@ -8,6 +8,8 @@ from django.core.exceptions import AppRegistryNotReady
 from django.core.validators import EmailValidator
 from django.db.models import Model
 from django.db.models.enums import ChoicesMeta
+from django.db.models.query import QuerySet
+from django.db.models.manager import Manager
 from django.shortcuts import get_object_or_404
 from django.urls import register_converter
 from django.urls.converters import SlugConverter
@@ -16,6 +18,7 @@ from django.db.models.options import Options
 
 from django_path_converters.lazymodelobject import ModelLazyObject
 
+import json
 
 class PathConverter(type):
     registered = []
@@ -83,6 +86,52 @@ class BaseConverter(metaclass=PathConverter):
         return value
 
 
+class NullConverterMixin:
+    use_explicit_null = True
+    nulls = {'null', 'none'}
+    explicit_null_regex = '[Nn][Uu][Ll]|[Nn][Oo][Nn][Ee]'
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        if cls.use_explicit_null:
+            cls.regex = f'(?:{cls.regex})||{cls.explicit_null_regex}'
+            cls.examples = *cls.examples, '', 'null', 'NULL', 'NONE', 'None', 'none'
+        else:
+            cls.regex = f'(?:{cls.regex})|'
+            cls.examples = *cls.examples, ''
+
+    def to_python(self, value):
+        if value and valuse.casefold() not in self.nulls:
+            return super().to_python(value)
+
+    def to_url(self,value):
+        if value is not None:
+            return super().to_url(value)
+        elif self.use_explicit_null:
+            return 'null'
+        else:
+            return ''
+
+
+class BoolConverter(BaseConverter):
+    yeas = {'yes', 'true', 't', 'y', '1', 'on'}
+    regex = '[Yy]([Ee][Ss])?|[Tt]([Rr][Uu][Ee])?|[Oo][Nn]|1|[Ff]([Aa][Ll][Ss][Ee])?|[Nn][Oo]?|[Oo][Ff][Ff]|0'
+    name = 'bool'
+    accepts = object
+    examples = 'True', 'False', '1', '0', 'T', 'F', 'on', 'oFF', 'yes', 'NO'
+
+    def to_python(self, value):
+        return value.casefold() in self.yeas
+
+    def to_url(self, value):
+        return json.dumps(bool(value))
+
+
+class NullBoolConverter(NullConverterMixin, BoolConverter):
+    name = 'nullbool'
+
+
+
 COLON_REGEX = '[:]?'
 HOUR_REGEX = r'(?:[0-1]\d|2[0-4])'
 MINSEC_REGEX = r'[0-5][0-9]'
@@ -91,15 +140,23 @@ DATE_REGEX = r'[0-9]{4}[-](?:0?[1-9]|1[0-2])-(?:0?[1-9]|[12][0-9]|3[01])'
 TIME_REGEX = rf'{HOUR_REGEX}{COLON_REGEX}{MINSEC_REGEX}{COLON_REGEX}{MINSEC_REGEX}{TZ_REGEX}'
 
 
-class AutoSlugConverter(BaseConverter):
+class AutoSlugConverter(BaseConverter, SlugConverter):
     pass_str = False
     name = 'autoslug'
-    accepts = str
+    accepts = (str, Model)
+    allow_unicode = False
+    slug_field = 'slug'
     regex = SlugConverter.regex
     examples = 'this-is-a-slug', 'slugifying-this-str'
 
     def to_url(self, value):
-        return slugify(value, allow_unicode=True)
+        value = str(getattr(value, self.slug_field, value))
+        return slugify(value, allow_unicode=self.allow_unicode)
+
+class UnicodeAutoSlugConverter(AutoSlugConverter):
+    name = 'autoslugunicode'
+    allow_unicode = True
+
 
 
 class DateTimeConverter(BaseConverter):
@@ -211,11 +268,14 @@ class ObjectConverter(ModelConverter):
         return get_object_or_404(model, pk=pk)
 
     def to_python(self, value):
-        app_name, model, pk = value.split('/', 2)
+        model, pk = value.rsplit('/', 1)
         model = super().to_python(model)
         if self.manager is not None:
             model = getattr(model, manager)
-        return get_object_or_404(model, pk=pk)
+        try:
+            return get_object_or_404(model, pk=pk)
+        except Http404 as e:
+            return ValueError(*e.args)
 
     def inner_to_url(self, value):
         return f'{super().inner_to_url(value)}/{quote(value.pk)}'

@@ -30,6 +30,20 @@ object loads: these will *not* evaluate an object, unless it is necessary, and t
       <td><code>str</code></td>
       <td><code>this-is-a-slug</code><br/><code>slugifying-this-str</code></td>
       <td><code>[-a-zA-Z0-9_]+</code></td>
+      <td><code>&lt;class &#x27;django.db.models.base.Model&#x27;&gt;</code></td>
+    </tr>
+    <tr>
+      <td><code>&lt;autoslugunicode:…&gt;</code></td>
+      <td><code>str</code></td>
+      <td><code>this-is-a-slug</code><br/><code>slugifying-this-str</code></td>
+      <td><code>[-a-zA-Z0-9_]+</code></td>
+      <td><code>&lt;class &#x27;django.db.models.base.Model&#x27;&gt;</code></td>
+    </tr>
+    <tr>
+      <td><code>&lt;bool:…&gt;</code></td>
+      <td><code>object</code></td>
+      <td><code>True</code><br/><code>False</code><br/><code>1</code><br/><code>0</code><br/><code>T</code><br/><code>F</code><br/><code>on</code><br/><code>oFF</code><br/><code>yes</code><br/><code>NO</code></td>
+      <td><code>[Yy]([Ee][Ss])?|[Tt]([Rr][Uu][Ee])?|[Oo][Nn]|1|[Ff]([Aa][Ll][Ss][Ee])?|[Nn][Oo]?|[Oo][Ff][Ff]|0</code></td>
       <td></td>
     </tr>
     <tr>
@@ -72,13 +86,20 @@ object loads: these will *not* evaluate an object, unless it is necessary, and t
       <td><code>django.db.models.base.Model</code></td>
       <td><code>auth/user</code></td>
       <td><code>[^/]+/[^/]+</code></td>
-      <td><code>&lt;class &#x27;django.db.models.base.ModelBase&#x27;&gt;</code><br/><code>&lt;class &#x27;django.db.models.options.Options&#x27;&gt;</code></td>
+      <td><code>&lt;class &#x27;django.db.models.base.ModelBase&#x27;&gt;</code><br/><code>&lt;class &#x27;django.db.models.options.Options&#x27;&gt;</code><br/><code>&lt;class &#x27;django.db.models.query.QuerySet&#x27;&gt;</code><br/><code>&lt;class &#x27;django.db.models.manager.Manager&#x27;&gt;</code></td>
     </tr>
     <tr>
       <td><code>&lt;month:…&gt;</code></td>
       <td><code>datetime.date</code></td>
       <td><code>2023-01</code></td>
       <td><code>[0-9]{4}[-](?:0?[1-9]|1[0-2])</code></td>
+      <td></td>
+    </tr>
+    <tr>
+      <td><code>&lt;nullbool:…&gt;</code></td>
+      <td><code>object</code></td>
+      <td><code>True</code><br/><code>False</code><br/><code>1</code><br/><code>0</code><br/><code>T</code><br/><code>F</code><br/><code>on</code><br/><code>oFF</code><br/><code>yes</code><br/><code>NO</code><br/><code></code><br/><code>null</code><br/><code>NULL</code><br/><code>NONE</code><br/><code>None</code><br/><code>none</code></td>
+      <td><code>(?:[Yy]([Ee][Ss])?|[Tt]([Rr][Uu][Ee])?|[Oo][Nn]|1|[Ff]([Aa][Ll][Ss][Ee])?|[Nn][Oo]?|[Oo][Ff][Ff]|0)||[Nn][Uu][Ll]|[Nn][Oo][Nn][Ee]</code></td>
       <td></td>
     </tr>
     <tr>
