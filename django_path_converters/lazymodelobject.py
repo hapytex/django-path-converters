@@ -1,4 +1,5 @@
 from django.db.models import Model, QuerySet, Manager, Q
+from django.db.models.options import Options
 from django.shortcuts import get_object_or_404
 from django.utils.functional import SimpleLazyObject, LazyObject
 
@@ -13,6 +14,7 @@ class ModelLazyObject(LazyObject):
     _model_or_queryset = None
     _model = None
     _is_pk = True
+
     @property
     def __class__(self):
         # used for the isinstance check, this prevents us from querying
@@ -20,8 +22,10 @@ class ModelLazyObject(LazyObject):
         return self._model
 
     def __init__(self, model_or_queryset, pk, pk_field='pk', check_field=True):
-        assert isinstance(model_or_queryset, (type(Model), Manager, QuerySet))
+        assert isinstance(model_or_queryset, (type(Model), Model, Options, Manager, QuerySet))
+        model_or_queryset = get_model_or_queryset(model_or_queryset)
         self._model_or_queryset = model_or_queryset
+        # prevent adding attributes to instances
         if self._pk_field != 'pk':
             self._pk_field = pk_field
         self._pk = pk
