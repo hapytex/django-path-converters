@@ -1,3 +1,4 @@
+from django.contrib.auth.models import Group
 from django.test import TestCase
 from django.urls.converters import get_converters
 
@@ -21,7 +22,7 @@ class PathConverterTest(TestCase):
         super().setUpClass()
         from django.contrib.auth.models import User
         User.objects.create(pk=12, username='Foo')
-        User.objects.create(pk=123, username='Bar')
+        Group.objects.create(pk=123, name='Sputnik')
 
     def test_path_converter_examples(self):
         for converter in get_converters().values():
