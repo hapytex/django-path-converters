@@ -273,7 +273,7 @@ class ObjectConverter(ModelConverter):
     name = 'eagerobject'
     regex = '[^/]+/[^/]+/[^/]+'
     accepts = (Model,)
-    examples = 'auth/user/123', 'auth/user/12'
+    examples = 'auth/group/123', 'auth/user/12'
     manager = None
 
     def create_object(self, model, pk):
