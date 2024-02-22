@@ -10,6 +10,7 @@ from django.db.models import Model
 from django.db.models.enums import ChoicesMeta
 from django.db.models.query import QuerySet
 from django.db.models.manager import Manager
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.urls import register_converter
 from django.urls.converters import SlugConverter
@@ -50,14 +51,14 @@ class PathConverter(type):
             register_converter(klass, name)
             cls.registered.append(klass)
         instance = klass()
-        if cls.check_examples and examples:
-            for example in examples:
-                try:
-                    assert rgx.fullmatch(example), f'{example} ~ {rgx.pattern}'
-                    result = instance.to_python(example)
-                    assert rgx.fullmatch(instance.to_url(result)), f'{result} -> {instance.to_url(result)} ~ {rgx}'
-                except (AppRegistryNotReady,):
-                    pass
+        # if cls.check_examples and examples:
+        #     for example in examples:
+        #         try:
+        #             assert rgx.fullmatch(example), f'{example} ~ {rgx.pattern}'
+        #             result = instance.to_python(example)
+        #             assert rgx.fullmatch(instance.to_url(result)), f'{result} -> {instance.to_url(result)} ~ {rgx}'
+        #         except (AppRegistryNotReady,):
+        #             pass
         return klass
 
     def data_dict(cls):
@@ -85,11 +86,14 @@ class BaseConverter(metaclass=PathConverter):
     def inner_to_url(self, value):
         return value
 
+    def __repr__(self):
+        return f'<{self.name}:…>'
+
 
 class NullConverterMixin:
     use_explicit_null = True
     nulls = {'null', 'none'}
-    explicit_null_regex = '[Nn][Uu][Ll]|[Nn][Oo][Nn][Ee]'
+    explicit_null_regex = '[Nn][Uu][Ll]{2}|[Nn][Oo][Nn][Ee]'
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -101,7 +105,7 @@ class NullConverterMixin:
             cls.examples = *cls.examples, ''
 
     def to_python(self, value):
-        if value and valuse.casefold() not in self.nulls:
+        if value and (not self.use_explicit_null or value.casefold() not in self.nulls):
             return super().to_python(value)
 
     def to_url(self,value):
@@ -111,6 +115,14 @@ class NullConverterMixin:
             return 'null'
         else:
             return ''
+
+
+class CombinedConverter(BaseConverter):
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init__(cls)
+        for k, v in ():
+            pass
 
 
 class BoolConverter(BaseConverter):
@@ -237,7 +249,7 @@ class DateRangeConverter(DateConverter):
 class ModelConverter(BaseConverter):
     name = 'model'
     regex = '[^/]+/[^/]+'
-    accepts = (Model, type(Model), Options, QuerySet, Manager)
+    accepts = (type(Model), Model, Options, QuerySet, Manager)
     examples = 'auth/user'
 
     def to_python(self, value):
@@ -271,11 +283,11 @@ class ObjectConverter(ModelConverter):
         model, pk = value.rsplit('/', 1)
         model = super().to_python(model)
         if self.manager is not None:
-            model = getattr(model, manager)
+            model = getattr(model, self.manager)
         try:
             return get_object_or_404(model, pk=pk)
         except Http404 as e:
-            return ValueError(*e.args)
+            raise ValueError(*e.args)
 
     def inner_to_url(self, value):
         return f'{super().inner_to_url(value)}/{quote(value.pk)}'

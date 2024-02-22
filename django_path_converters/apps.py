@@ -6,4 +6,4 @@ class PathConvertersConfig(AppConfig):
     verbose_name = 'Django path converters'
 
     def ready(self):
-        pass
+        import django_path_converters.converters  # noqa
