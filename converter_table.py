@@ -1,3 +1,5 @@
+# requires Django, pandas, and pytablewriter
+
 from django_path_converters.converters import PathConverter
 
 from pytablewriter import MarkdownTableWriter
