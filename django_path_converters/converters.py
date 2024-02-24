@@ -7,14 +7,14 @@ from collections import namedtuple
 from django.contrib.admin.utils import quote
 from django.core.exceptions import AppRegistryNotReady
 from django.core.validators import EmailValidator
-from django.db.models import Model
+from django.db.models import Model, Q
 from django.db.models.enums import ChoicesMeta
 from django.db.models.query import QuerySet
 from django.db.models.manager import Manager
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.urls import register_converter
-from django.urls.converters import DEFAULT_CONVERTERS, SlugConverter
+from django.urls.converters import DEFAULT_CONVERTERS, SlugConverter, IntConverter, StringConverter, UUIDConverter
 from django.utils.text import slugify
 from django.db.models.options import Options
 
@@ -49,9 +49,7 @@ class PathConverter(type):
         klass = super().__new__(cls, name, bases, attrs)
         name = attrs.get('name')
         if name:
-            if klass.name_prefix:
-                name = f'{klass.name_prefix}{name}'
-                klass.name = name
+            klass.name = name = f'{getattr(klass, "name_prefix", "")}{name}{getattr(klass, "name_suffix", "")}'
             register_converter(klass, name)
             cls.registered.append(klass)
         instance = klass()
@@ -75,8 +73,16 @@ class PathConverter(type):
         }
 
 
+    def __repr__(cls):
+        if hasattr(cls, 'name'):
+            return f'<{cls.name}:…>'
+        else:
+            return super().__repr__()
+
+
 class BaseConverter(metaclass=PathConverter):
     name_prefix = ''
+    name_suffix = ''
     pass_str = True
 
     def to_python(self, value):
@@ -188,6 +194,11 @@ class UnicodeAutoSlugConverter(AutoSlugConverter):
     name = 'autoslugunicode'
     allow_unicode = True
 
+class FullIntConverter(IntConverter, BaseConverter):
+    name = 'fullint'
+    regex = f'[+-]?{IntConverter.regex}'
+    examples = '-12', '14', '25'
+    accepts = (int,)
 
 class DateTimeConverter(BaseConverter):
     name = 'datetime'
@@ -317,7 +328,7 @@ class ChoicesConverter(BaseConverter):
 
     def __init_subclass__(cls, choices, **kwargs):
         if isinstance(choices, ChoicesMeta):
-            choices = choices
+            pass  # TODO
         super().__init_subclass__(cls, **kwargs)
 
 
@@ -332,12 +343,10 @@ class EnumConverter(BaseConverter):
     enum_class = None
 
     def __init_subclass__(cls, enum_class=None, name=None, **kwargs):
-        cls.enum_class = enum_class
+        cls.enum_class = enum_class or cls.enum_class
         if not issubclass(enum_class, Enum):
             raise ValueError('The enum_class must be a subclass of Enum')
         setattr(cls, 'regex', '|'.join(re.escape(v) for v in enum_class.values))
-        if name is not None:
-            register_converter(cls, f'{cls.name_prefix}{name}')
         super().__init_subclass__(**kwargs)
 
     def to_python(self, value):
@@ -349,3 +358,31 @@ class EnumConverter(BaseConverter):
         if isinstance(value, self.enum_class):
             return value.value
         return value
+
+
+class ModelLoadMixin:
+    name_prefix = 'eager_'
+    model_class = None
+    field_name = None
+
+    def to_python(self, value):
+        try:
+            return get_object_or_404(self.model_class, Q((self.field_name, super().to_python(value))))
+        except self.model_class.DoesNotExist as e:
+            raise ValueError(*e.args)
+
+    def to_url(self, value):
+        return super().to_url(getattr(value, self.field_name, value))
+
+
+
+class LazyLoadMixin:
+    model_class = None
+    field_name = None
+    check_field = True
+
+    def to_python(self, value):
+        return ModelLazyObject(self.model_class, super().to_python(value), pk_field=self.field_name, check_field=self.check_field)
+
+    def to_url(self, value):
+        return super().to_url(getattr(value, self.field_name, value))
