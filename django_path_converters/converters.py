@@ -2,6 +2,7 @@ from datetime import date, datetime
 import re
 from enum import Enum
 from functools import partial
+from collections import namedtuple
 
 from django.contrib.admin.utils import quote
 from django.core.exceptions import AppRegistryNotReady
@@ -13,7 +14,7 @@ from django.db.models.manager import Manager
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.urls import register_converter
-from django.urls.converters import SlugConverter
+from django.urls.converters import DEFAULT_CONVERTERS, SlugConverter
 from django.utils.text import slugify
 from django.db.models.options import Options
 
@@ -117,14 +118,6 @@ class NullConverterMixin:
             return ''
 
 
-class CombinedConverter(BaseConverter):
-
-    def __init_subclass__(cls, **kwargs):
-        super().__init__(cls)
-        for k, v in ():
-            pass
-
-
 class BoolConverter(BaseConverter):
     yeas = {'yes', 'true', 't', 'y', '1', 'on'}
     regex = '[Yy]([Ee][Ss])?|[Tt]([Rr][Uu][Ee])?|[Oo][Nn]|1|[Ff]([Aa][Ll][Ss][Ee])?|[Nn][Oo]?|[Oo][Ff][Ff]|0'
@@ -142,6 +135,31 @@ class BoolConverter(BaseConverter):
 class NullBoolConverter(NullConverterMixin, BoolConverter):
     name = 'nullbool'
 
+
+class MetaCombinedConverter(type(BaseConverter)):
+    path_separator = '/'
+    path_separator_regex = '/'
+    tuple_constructor = namedtuple
+
+    def __new__(cls, name, bases, attrs):
+        if 'name' in attrs:
+            subs = {k: v() for k,v in attrs.items() if isinstance(v, type) and issubclass(v, (BaseConverter, *map(type, DEFAULT_CONVERTERS.values())))}
+            attrs['_subconverters'] = subs
+            constructor = attrs['constructor'] = self.tuple_constructor(attrs['name'], list(subs))
+            attrs['accepts'] = (constructor,)
+            regex = attrs['regex'] = cls.path_separator_regex.join([f'(?P<{k}>{v.regex})' for k, v in subs.items()])
+            print(regex)
+            return super().__new__(cls, name, bases, attrs)
+        return super().__new__(cls, name, bases, attrs)
+
+class CombinedBaseConverter(BaseConverter, metaclass=MetaCombinedConverter):
+    def to_python(self, value):
+        _match = re.match(self.regex, value)
+        print({k: v.to_python(_match.group(k)) for k, v in self._subconverters.items()})
+        return self.constructor(**{k: v.to_python(_match.group(k)) for k, v in self._subconverters.items()})
+
+    def to_url(self, value):
+        return type(self).path_separator.join([v.to_url(getattr(value, k)) for k, v in self._subconverters.items()])
 
 
 COLON_REGEX = '[:]?'
@@ -168,7 +186,6 @@ class AutoSlugConverter(BaseConverter, SlugConverter):
 class UnicodeAutoSlugConverter(AutoSlugConverter):
     name = 'autoslugunicode'
     allow_unicode = True
-
 
 
 class DateTimeConverter(BaseConverter):
@@ -229,6 +246,14 @@ class WeekConverter(DateConverter):
 
     def to_python(self, value, date_format=None):
         return super().to_python(f'{value}{self.week_day}', date_format or f'{self.date_format}{self.week_format}')
+
+
+class DataRangeSimpleConverter(CombinedBaseConverter):
+    name = 'daterange_test'
+    from_date = DateConverter
+    to_date = DateConverter
+    examples = '1958-3-25/2019-11-25'
+    accepts = (namedtuple, )
 
 
 
