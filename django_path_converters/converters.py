@@ -22,6 +22,9 @@ from django_path_converters.lazymodelobject import ModelLazyObject
 
 import json
 
+from django_path_converters.utils import strip_capture_groups
+
+
 class PathConverter(type):
     registered = []
     check_regex = True
@@ -145,17 +148,15 @@ class MetaCombinedConverter(type(BaseConverter)):
         if 'name' in attrs:
             subs = {k: v() for k,v in attrs.items() if isinstance(v, type) and issubclass(v, (BaseConverter, *map(type, DEFAULT_CONVERTERS.values())))}
             attrs['_subconverters'] = subs
-            constructor = attrs['constructor'] = self.tuple_constructor(attrs['name'], list(subs))
+            constructor = attrs['constructor'] = cls.tuple_constructor(attrs['name'], list(subs))
             attrs['accepts'] = (constructor,)
-            regex = attrs['regex'] = cls.path_separator_regex.join([f'(?P<{k}>{v.regex})' for k, v in subs.items()])
-            print(regex)
+            attrs['regex'] = cls.path_separator_regex.join([f'(?P<{k}>{strip_capture_groups(v.regex)})' for k, v in subs.items()])
             return super().__new__(cls, name, bases, attrs)
         return super().__new__(cls, name, bases, attrs)
 
 class CombinedBaseConverter(BaseConverter, metaclass=MetaCombinedConverter):
     def to_python(self, value):
         _match = re.match(self.regex, value)
-        print({k: v.to_python(_match.group(k)) for k, v in self._subconverters.items()})
         return self.constructor(**{k: v.to_python(_match.group(k)) for k, v in self._subconverters.items()})
 
     def to_url(self, value):
@@ -248,27 +249,12 @@ class WeekConverter(DateConverter):
         return super().to_python(f'{value}{self.week_day}', date_format or f'{self.date_format}{self.week_format}')
 
 
-class DataRangeSimpleConverter(CombinedBaseConverter):
-    name = 'daterange_test'
+class DateRangeConverter(CombinedBaseConverter):
+    name = 'daterange'
     from_date = DateConverter
     to_date = DateConverter
     examples = '1958-3-25/2019-11-25'
     accepts = (namedtuple, )
-
-
-
-class DateRangeConverter(DateConverter):
-    name = 'date_range'
-    regex = f'{DATE_REGEX}/{DATE_REGEX}'
-    examples = '1958-3-25/2019-11-25'
-    accepts = (tuple[date, date],)
-
-    def to_python(self, value, date_format=None):
-        return tuple(map(partial(super().to_python, date_format=date_format), value.split('/', 1)))
-
-    def inner_to_url(self, value):
-        frm, to = value
-        return f'{super().inner_to_url(frm)}/{super().inner_to_url(to)}'
 
 
 class ModelConverter(BaseConverter):
