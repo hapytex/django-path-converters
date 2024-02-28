@@ -157,16 +157,14 @@ class MetaCombinedConverter(type(BaseConverter)):
             constructor = attrs['constructor'] = cls.tuple_constructor(attrs['name'], list(subs))
             attrs['accepts'] = (constructor,)
             attrs['regex'] = cls.path_separator_regex.join([f'(?P<{k}>{strip_capture_groups(v.regex)})' for k, v in subs.items()])
-            return super().__new__(cls, name, bases, attrs)
         return super().__new__(cls, name, bases, attrs)
 
 class CombinedBaseConverter(BaseConverter, metaclass=MetaCombinedConverter):
     def to_python(self, value):
         _match = re.match(self.regex, value)
         return self.constructor(**{k: v.to_python(_match.group(k)) for k, v in self._subconverters.items()})
-
     def to_url(self, value):
-        return type(self).path_separator.join([v.to_url(getattr(value, k)) for k, v in self._subconverters.items()])
+        return type(self).path_separator.join(conv.to_url(val) for conv, val in zip(self._subconverters.items(), value))
 
 
 COLON_REGEX = '[:]?'

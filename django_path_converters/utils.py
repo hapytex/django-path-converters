@@ -39,5 +39,5 @@ def get_model_options(model: AllItemTypes) -> Options:
         return model
     return get_model(model)._meta
 
-def strip_capture_groups(pattern: str):
+def strip_capture_groups(pattern: str) -> str:
     return REMOVE_CAPTURE_GROUPS.sub('(?:', pattern)
