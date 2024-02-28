@@ -52,11 +52,13 @@ class PathConvertersConfig(AppConfig):
                                 model_class = model
                                 field_name = field.name
                                 name_suffix = suffix
+                                from_types = to_types = (model,)
 
                             class ModelConverter(*nullable_class, LazyLoadMixin, base_path_converter, BaseConverter):  # noqa
                                 name = _name
                                 model_class = model
                                 field_name = field.name
                                 name_suffix = suffix
+                                from_types = to_types = (model,)
         from django.urls.converters import get_converters
         pprint(get_converters())

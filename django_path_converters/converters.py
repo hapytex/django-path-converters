@@ -3,6 +3,7 @@ import re
 from enum import Enum
 from functools import partial
 from collections import namedtuple
+from typing import Iterable
 
 from django.contrib.admin.utils import quote
 from django.core.exceptions import AppRegistryNotReady
@@ -22,18 +23,13 @@ from django_path_converters.lazymodelobject import ModelLazyObject
 
 import json
 
-from django_path_converters.utils import strip_capture_groups
+from django_path_converters.utils import strip_capture_groups, wrap_tuple
 
 
 class PathConverter(type):
     registered = []
     check_regex = True
     check_examples = True
-
-    @property
-    def to_type(cls):
-        if cls.accepts:
-            return cls.accepts[0]
 
     def __new__(cls, name, bases, attrs):
         if cls.check_regex and 'regex' in attrs:
@@ -42,34 +38,31 @@ class PathConverter(type):
             attrs['regex'] = rgx.pattern  # might be simplified (in future)
         if 'accepts' in attrs and not isinstance(attrs['accepts'], (list, tuple)):
             attrs['accepts'] = (attrs['accepts'],)
+        if 'from_types' in attrs:
+            attrs['from_types'] = wrap_tuple(attrs['from_types'])
+        if 'to_types' in attrs:
+            attrs['to_types'] = wrap_tuple(attrs['to_types'])
         examples = attrs.get('examples')
         # wrap in a tuple in case of a single example
         if isinstance(examples, str):
             examples = attrs['examples'] = (examples,)
         klass = super().__new__(cls, name, bases, attrs)
+        for to_type in klass.to_types:
+            assert issubclass(to_type, klass.from_types)
         name = attrs.get('name')
         if name:
             klass.name = name = f'{getattr(klass, "name_prefix", "")}{name}{getattr(klass, "name_suffix", "")}'
             register_converter(klass, name)
             cls.registered.append(klass)
-        instance = klass()
-        # if cls.check_examples and examples:
-        #     for example in examples:
-        #         try:
-        #             assert rgx.fullmatch(example), f'{example} ~ {rgx.pattern}'
-        #             result = instance.to_python(example)
-        #             assert rgx.fullmatch(instance.to_url(result)), f'{result} -> {instance.to_url(result)} ~ {rgx}'
-        #         except (AppRegistryNotReady,):
-        #             pass
         return klass
 
     def data_dict(cls):
         return {
             'name': cls.name,
-            'type': cls.to_type,
+            'type': cls.to_types,
             'examples': '\n'.join(cls.examples),
             'regex': cls.regex,
-            'accepts': cls.accepts[1:],
+            'from_types': cls.from_types,
         }
 
 
@@ -84,6 +77,8 @@ class BaseConverter(metaclass=PathConverter):
     name_prefix = ''
     name_suffix = ''
     pass_str = True
+    to_types = ()
+    from_types = ()
 
     def to_python(self, value):
         return value
@@ -113,6 +108,8 @@ class NullConverterMixin:
         else:
             cls.regex = f'(?:{cls.regex})|'
             cls.examples = *cls.examples, ''
+        cls.to_types = (*cls.to_types, type(None))
+        cls.from_types = (*cls.from_types, type(None))
 
     def to_python(self, value):
         if value and (not self.use_explicit_null or value.casefold() not in self.nulls):
@@ -131,7 +128,8 @@ class BoolConverter(BaseConverter):
     yeas = {'yes', 'true', 't', 'y', '1', 'on'}
     regex = '[Yy]([Ee][Ss])?|[Tt]([Rr][Uu][Ee])?|[Oo][Nn]|1|[Ff]([Aa][Ll][Ss][Ee])?|[Nn][Oo]?|[Oo][Ff][Ff]|0'
     name = 'bool'
-    accepts = object
+    from_types = object
+    to_types = bool
     examples = 'True', 'False', '1', '0', 'T', 'F', 'on', 'oFF', 'yes', 'NO'
 
     def to_python(self, value):
@@ -155,7 +153,8 @@ class MetaCombinedConverter(type(BaseConverter)):
             subs = {k: v() for k,v in attrs.items() if isinstance(v, type) and issubclass(v, (BaseConverter, *map(type, DEFAULT_CONVERTERS.values())))}
             attrs['_subconverters'] = subs
             constructor = attrs['constructor'] = cls.tuple_constructor(attrs['name'], list(subs))
-            attrs['accepts'] = (constructor,)
+            attrs['to_types'] = (constructor,)
+            attrs['from_types'] = (Iterable,)
             attrs['regex'] = cls.path_separator_regex.join([f'(?P<{k}>{strip_capture_groups(v.regex)})' for k, v in subs.items()])
         return super().__new__(cls, name, bases, attrs)
 
@@ -164,7 +163,7 @@ class CombinedBaseConverter(BaseConverter, metaclass=MetaCombinedConverter):
         _match = re.match(self.regex, value)
         return self.constructor(**{k: v.to_python(_match.group(k)) for k, v in self._subconverters.items()})
     def to_url(self, value):
-        return type(self).path_separator.join(conv.to_url(val) for conv, val in zip(self._subconverters.items(), value))
+        return type(self).path_separator.join(conv.to_url(val) for conv, val in zip(self._subconverters.values(), value))
 
 
 COLON_REGEX = '[:]?'
@@ -178,7 +177,8 @@ TIME_REGEX = rf'{HOUR_REGEX}{COLON_REGEX}{MINSEC_REGEX}{COLON_REGEX}{MINSEC_REGE
 class AutoSlugConverter(BaseConverter, SlugConverter):
     pass_str = False
     name = 'autoslug'
-    accepts = (str, Model)
+    to_types = (str,)
+    from_types = (str, Model)
     allow_unicode = False
     slug_field = 'slug'
     regex = SlugConverter.regex
@@ -196,13 +196,14 @@ class FullIntConverter(IntConverter, BaseConverter):
     name = 'fullint'
     regex = f'[+-]?{IntConverter.regex}'
     examples = '-12', '14', '25'
-    accepts = (int,)
+    from_types = to_types = (int,)
 
 class DateTimeConverter(BaseConverter):
     name = 'datetime'
     date_format = '%Y-%m-%dT%H:%M:%S%z', '%Y-%m-%dT%H:%M:%S', '%Y%m%dT%H%M%S%z', '%Y%m%dT%H%M%S'
     regex = rf'{DATE_REGEX}T{TIME_REGEX}'
-    accepts = (datetime, date)
+    to_types = (datetime,)
+    from_types = (datetime, date)
     examples = '2023-01-24T19:21:18Z', '2023-01-24T19:21:18+00:00', '2023-01-24T19:47:58'
 
     def to_python(self, value, date_format=None):
@@ -232,7 +233,7 @@ class DateConverter(DateTimeConverter):
     name = 'date'
     date_format = '%Y-%m-%d'
     regex = DATE_REGEX
-    accepts = (date,)
+    to_types = (date,)
     examples = '2023-01-21'
 
     def to_python(self, value, date_format=None):
@@ -263,13 +264,13 @@ class DateRangeConverter(CombinedBaseConverter):
     from_date = DateConverter
     to_date = DateConverter
     examples = '1958-3-25/2019-11-25'
-    accepts = (namedtuple, )
 
 
 class ModelConverter(BaseConverter):
     name = 'model'
     regex = '[^/]+/[^/]+'
-    accepts = (type(Model), Model, Options, QuerySet, Manager)
+    to_types = (type(Model),)
+    from_types = (type(Model), Model, Options, QuerySet, Manager)
     examples = 'auth/user'
 
     def to_python(self, value):
@@ -292,7 +293,7 @@ class ModelConverter(BaseConverter):
 class ObjectConverter(ModelConverter):
     name = 'eagerobject'
     regex = '[^/]+/[^/]+/[^/]+'
-    accepts = (Model,)
+    to_types = from_types = (Model,)
     examples = 'auth/group/123', 'auth/user/12'
     manager = None
 
@@ -333,7 +334,7 @@ class ChoicesConverter(BaseConverter):
 class EmailConverter(BaseConverter):
     name = 'email'
     regex = f'.*' # f'(?:{EmailValidator.user_regex.pattern})@(?:{EmailValidator.domain_regex.pattern})'
-    accepts = str
+    from_types = to_types = (str,)
     examples = ('info@djangoproject.com', 'test@foo.org')
 
 class EnumConverter(BaseConverter):

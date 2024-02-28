@@ -1,9 +1,9 @@
 from django.db.models import Model, QuerySet, Manager, Q
 from django.db.models.options import Options
 from django.shortcuts import get_object_or_404
-from django.utils.functional import SimpleLazyObject, LazyObject
+from django.utils.functional import LazyObject
 
-from django_path_converters.utils import get_model_options, get_model, get_queryset
+from django_path_converters.utils import get_model_options, get_model, get_queryset, get_model_or_queryset
 
 
 class ModelLazyObject(LazyObject):
@@ -24,21 +24,20 @@ class ModelLazyObject(LazyObject):
     def __init__(self, model_or_queryset, pk, pk_field='pk', check_field=True):
         assert isinstance(model_or_queryset, (type(Model), Model, Options, Manager, QuerySet))
         model_or_queryset = get_model_or_queryset(model_or_queryset)
-        self._model_or_queryset = model_or_queryset
+        # prevent loading the object by using a setter
+        dic = self.__dict__
+        model = get_model(model_or_queryset)
+        dic.update(_model_or_queryset=model_or_queryset, _pk=pk, _model=model)
         # prevent adding attributes to instances
-        if self._pk_field != 'pk':
-            self._pk_field = pk_field
-        self._pk = pk
-        self._model = model = get_model(model_or_queryset)
+        if pk_field != 'pk':
+            dic.update(_pk_field=pk_field)
         if check_field:
             # check if the model indeed can resolve the field, will *NOT* make a query
-            get_queryset(model).filter(Q(pk_field, pk))
+            get_queryset(model_or_queryset).filter(Q((pk_field, pk)))
         model_pk = get_model_options(model).pk.name
         is_pk = pk_field == 'pk' or pk_field == model_pk
         if not is_pk:
-            self._is_pk = False
-        # prevent loading the object by using a setter
-        dic = self.__dict__
+            dic.update(is_pk=False)
         if is_pk:
             dic.update(pk=pk)
             dic[model_pk] = pk
@@ -49,9 +48,9 @@ class ModelLazyObject(LazyObject):
     def with_queryset(self, model_or_queryset=None):
         if model_or_queryset is not None:
             assert get_model(model_or_queryset) == self._model
-        return self.with_queryset_unsafe(model_or_queryset)
+        return self._with_queryset_unsafe(model_or_queryset)
 
-    def with_queryset_unsafe(self, model_or_queryset=None):
+    def _with_queryset_unsafe(self, model_or_queryset=None):
         return type(self)(model_or_queryset or self._model_or_queryset, self._pk, self._pk_field)
 
     def with_queryset_update(self, model_or_queryset=None):
