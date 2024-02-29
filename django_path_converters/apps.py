@@ -39,13 +39,13 @@ class PathConvertersConfig(AppConfig):
                     if field.null:
                         nullable_class = (NullConverterMixin,)
                     if counter[model._meta.model_name] == 1:
-                        names = (f'{model._meta.app_label}_{model._meta.model_name}', f'{model._meta.model_name}')
+                        names = (f'{model._meta.app_label}.{model._meta.model_name}', f'{model._meta.model_name}')
                     else:
-                        names = (f'{model._meta.app_label}_{model._meta.model_name}',)
+                        names = (f'{model._meta.app_label}.{model._meta.model_name}',)
                     if field.primary_key:
-                        suffixes = (f'_{field.name}', '')
+                        suffixes = (f'.{field.name}', '')
                     else:
-                        suffixes = (f'_{field.name}',)
+                        suffixes = (f'.{field.name}',)
                     for _name in names:
                         for suffix in suffixes:
                             class ModelConverter(*nullable_class, ModelLoadMixin, base_path_converter, BaseConverter):  # noqa

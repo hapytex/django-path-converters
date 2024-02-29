@@ -1,5 +1,7 @@
-# requires Django, pandas, and pytablewriter
-
+from django.core.management.base import BaseCommand
+from django.db.models import Count
+from catalog.models import SubGroup, Regime
+from catalog.cache import get_cached_frames
 from django_path_converters.converters import PathConverter
 
 import pandas as pd
@@ -42,23 +44,26 @@ def codify(text, lef='', rig=''):
         return '<br/>'.join(f'<code>{escape(lef+lin+rig)}</code>' for lin in text.split('\n'))
     return ''
 
-if __name__ == '__main__':
-    df = pd.DataFrame([klass.data_dict() for klass in PathConverter.registered]).sort_values('name')
 
-    df.rename(columns={'accepts': 'also accepts'}, inplace=True)
+class Command(BaseCommand):
+    help = "Create a table of the registered path converters"
 
-    # quote_df(df, 'name', '`<', ':…>`')
-    # quote_df(df, 'regex')
-    # quote_df(df, 'type')
-    expl_df(df, 'also accepts')
+    def handle(self, *args, **options):
+        df = pd.DataFrame([klass.data_dict() for klass in PathConverter.registered]).sort_values('name')
 
-    # df = df.set_index('name')
+        df.rename(columns={'accepts': 'also accepts'}, inplace=True)
 
-    print(df.to_html(formatters={
-        'name': partial(codify, lef='<', rig=':…>'),
-        'regex': codify,
-        'type': codify,
-        'also accepts': codify,
-        'examples': codify,
-    }, index=False, escape=False))
-    #MarkdownTableWriter(dataframe=df).write_table()
+        # quote_df(df, 'name', '`<', ':…>`')
+        # quote_df(df, 'regex')
+        # quote_df(df, 'type')
+        expl_df(df, 'also accepts')
+
+        # df = df.set_index('name')
+
+        print(df.to_html(formatters={
+            'name': partial(codify, lef='<', rig=':…>'),
+            'regex': codify,
+            'type': codify,
+            'also accepts': codify,
+            'examples': codify,
+        }, index=False, escape=False))
