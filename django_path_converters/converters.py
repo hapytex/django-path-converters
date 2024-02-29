@@ -364,6 +364,10 @@ class ModelLoadMixin:
     name_prefix = 'eager_'
     model_class = None
     field_name = None
+    
+    @property
+    def accepts(self):
+        return (self.model_class,)
 
     def to_python(self, value):
         try:
@@ -380,6 +384,10 @@ class LazyLoadMixin:
     model_class = None
     field_name = None
     check_field = True
+
+    @property
+    def accepts(self):
+        return (self.model_class,)
 
     def to_python(self, value):
         return ModelLazyObject(self.model_class, super().to_python(value), pk_field=self.field_name, check_field=self.check_field)

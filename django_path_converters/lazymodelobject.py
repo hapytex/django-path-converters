@@ -3,7 +3,7 @@ from django.db.models.options import Options
 from django.shortcuts import get_object_or_404
 from django.utils.functional import SimpleLazyObject, LazyObject
 
-from django_path_converters.utils import get_model_options, get_model, get_queryset
+from django_path_converters.utils import get_model_options, get_model, get_queryset, get_model_or_queryset
 
 
 class ModelLazyObject(LazyObject):
@@ -23,22 +23,22 @@ class ModelLazyObject(LazyObject):
 
     def __init__(self, model_or_queryset, pk, pk_field='pk', check_field=True):
         assert isinstance(model_or_queryset, (type(Model), Model, Options, Manager, QuerySet))
+        # prevent loading the object by using a setter
+        dic = self.__dict__
         model_or_queryset = get_model_or_queryset(model_or_queryset)
-        self._model_or_queryset = model_or_queryset
+        dic.update(_model_or_queryset=model_or_queryset)
         # prevent adding attributes to instances
-        if self._pk_field != 'pk':
-            self._pk_field = pk_field
-        self._pk = pk
-        self._model = model = get_model(model_or_queryset)
+        if pk_field != 'pk':
+            dic.update(_pk_field = pk_field)
+        model = get_model(model_or_queryset)
+        dic.update(_pk = pk, _model=model)
         if check_field:
-            # check if the model indeed can resolve the field, will *NOT* make a query
-            get_queryset(model).filter(Q(pk_field, pk))
+            # check if the model indeed *can* resolve the field, will *NOT* make a query
+            get_queryset(model).filter(Q((pk_field, pk)))
         model_pk = get_model_options(model).pk.name
         is_pk = pk_field == 'pk' or pk_field == model_pk
         if not is_pk:
-            self._is_pk = False
-        # prevent loading the object by using a setter
-        dic = self.__dict__
+            dic.update(_is_pk=False)
         if is_pk:
             dic.update(pk=pk)
             dic[model_pk] = pk
