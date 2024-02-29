@@ -6,6 +6,24 @@ from django.utils.functional import LazyObject, empty
 from django_path_converters.utils import get_model_options, get_model, get_queryset, get_model_or_queryset
 
 
+class ModelLazyStateObject(LazyObject):
+    def __init__(self, parent, queryset):
+        self.__dict__.update(_parent=parent, _queryset=queryset)
+        super().__init__()
+
+    @property
+    def db(self):
+        return get_queryset(self._queryset).db
+
+    def _setup(self):
+        # we can't use `self.parent._state`, since that will point us back to self
+        result = self._parent._wrapped
+        if result is empty:  # still to evaluate
+            result = self._parent._setup()
+        result = self._wrapped = result._state
+        return result
+
+
 class ModelLazyObject(LazyObject):
     # TODO: setters for the fields that are known
     # set class fields, to avoid infinite loops when setting attributes
@@ -64,6 +82,13 @@ class ModelLazyObject(LazyObject):
     def with_queryset_update(self, model_or_queryset=None):
         self._model_or_queryset = model_or_queryset or self._model_or_queryset
         return self
+
+    @property
+    def _state(self):
+        return ModelLazyStateObject(self, queryset=self._model_or_queryset)
+
+    def __bool__(self):
+        return True
 
     def _setup(self):
         result = self._wrapped = get_object_or_404(self._model_or_queryset, Q((self._pk_field, self._pk)))
