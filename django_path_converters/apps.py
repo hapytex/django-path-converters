@@ -13,7 +13,8 @@ class PathConvertersConfig(AppConfig):
     def ready(self):
         import django_path_converters.converters  # noqa
         from django.apps import apps
-        from .converters import IntConverter, FullIntConverter, PathConverter, BoolConverter, StringConverter, DateConverter, UUIDConverter, LazyLoadMixin
+        from django.urls.converters import StringConverter, UUIDConverter
+        from .converters import IntConverter, FullIntConverter, PathConverter, BoolConverter, DateConverter, LazyLoadMixin
         from django.db.models.fields import AutoField, BooleanField, CharField, DateField, FilePathField, IntegerField, UUIDField
 
         for field, converter in (
@@ -60,5 +61,3 @@ class PathConvertersConfig(AppConfig):
                                 field_name = field.name
                                 name_suffix = suffix
                                 from_types = to_types = (model,)
-        from django.urls.converters import get_converters
-        pprint(get_converters())
