@@ -1,4 +1,5 @@
 from django.db.models import Model, QuerySet, Manager, Q
+from django.db.models.base import ModelState
 from django.db.models.options import Options
 from django.shortcuts import get_object_or_404
 from django.utils.functional import LazyObject, empty
@@ -8,12 +9,15 @@ from django_path_converters.utils import get_model_options, get_model, get_query
 
 class ModelLazyStateObject(LazyObject):
     def __init__(self, parent, queryset):
-        self.__dict__.update(_parent=parent, _queryset=queryset)
+        self.__dict__.update(_parent=parent)
         super().__init__()
+
+    __class__ = ModelState
+    adding = False
 
     @property
     def db(self):
-        return get_queryset(self._queryset).db
+        return get_queryset(self._parent._model_or_queryset).db
 
     def _setup(self):
         # we can't use `self.parent._state`, since that will point us back to self
