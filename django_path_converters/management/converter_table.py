@@ -2,7 +2,6 @@
 
 from django_path_converters.converters import PathConverter
 
-from pytablewriter import MarkdownTableWriter
 import pandas as pd
 from django.utils.html import escape
 from functools import partial
