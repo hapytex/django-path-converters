@@ -1,7 +1,7 @@
 from django.db.models import Model, QuerySet, Manager, Q
 from django.db.models.options import Options
 from django.shortcuts import get_object_or_404
-from django.utils.functional import LazyObject
+from django.utils.functional import LazyObject, empty
 
 from django_path_converters.utils import get_model_options, get_model, get_queryset, get_model_or_queryset
 
@@ -20,6 +20,14 @@ class ModelLazyObject(LazyObject):
         # used for the isinstance check, this prevents us from querying
         # when performing isinstance functions
         return self._model
+
+    def __dir__(self):
+        wrapped = self._wrapped
+        # create model instance to get the __dir__
+        if self._wrapped is empty:
+            return dir(self._model())
+        else:
+            return dir(wrapped)
 
     def __init__(self, model_or_queryset, pk, pk_field='pk', check_field=True):
         assert isinstance(model_or_queryset, (type(Model), Model, Options, Manager, QuerySet))

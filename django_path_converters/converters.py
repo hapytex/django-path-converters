@@ -1,13 +1,10 @@
 from datetime import date, datetime
 import re
 from enum import Enum
-from functools import partial
 from collections import namedtuple
 from typing import Iterable
 
 from django.contrib.admin.utils import quote
-from django.core.exceptions import AppRegistryNotReady
-from django.core.validators import EmailValidator
 from django.db.models import Model, Q
 from django.db.models.enums import ChoicesMeta
 from django.db.models.query import QuerySet
@@ -15,7 +12,7 @@ from django.db.models.manager import Manager
 from django.http import Http404
 from django.shortcuts import get_object_or_404
 from django.urls import register_converter
-from django.urls.converters import DEFAULT_CONVERTERS, SlugConverter, IntConverter, StringConverter, UUIDConverter
+from django.urls.converters import DEFAULT_CONVERTERS, SlugConverter, IntConverter
 from django.utils.text import slugify
 from django.db.models.options import Options
 
