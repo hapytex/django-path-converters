@@ -32,10 +32,10 @@ class Command(BaseCommand):
         for subresolver in getattr(resolver, 'url_patterns', ()):
             yield from self.produce_regexes(subresolver, regex)
 
-    def explain_capture(self, capture_dict, _type='first', _next=False):
+    def explain_capture(self, capture_dict, _type='first', _hasnext=False):
         if capture_dict:
             explain = ', '.join(f'\x1b[32m{k}\x1b[0m=\x1b[33m{v!r}\x1b[0m' for k, v in capture_dict.items())
-            sys.stderr.write(f'    {"and " if _next else ""}with {explain} for the {_type} pattern.\n')
+            sys.stderr.write(f'    with {explain} for the {_type} pattern{"; and" if _hasnext else "."}\n')
             return True
 
     def explain_failure(self, xeger, regex1, regex2, full1, full2):
@@ -51,11 +51,12 @@ class Command(BaseCommand):
                 with_example = capture1 and capture2
             except:
                 pass
-            sys.stderr.write(f'paths: \x1b[34m{full1}\x1b[0m and \x1b[34m{full2}\x1b[0m overlap\n')
+            sys.stderr.write(f'patterns \x1b[34m{full1}\x1b[0m and \x1b[34m{full2}\x1b[0m overlap\n')
             if with_example:
                 sys.stderr.write(f'  for example with \x1b[35m{example!r}\x1b[0m\n')
-                exp1 = self.explain_capture(capture1.groupdict())
-                self.explain_capture(capture2.groupdict(), _type='second', _next=exp1)
+                gd2 = capture2.groupdict()
+                self.explain_capture(capture1.groupdict(), _hasnext=gd2)
+                self.explain_capture(gd2, _type='second')
         return fail
 
 
