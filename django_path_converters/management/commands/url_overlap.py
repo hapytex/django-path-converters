@@ -35,7 +35,7 @@ class Command(BaseCommand):
     def explain_capture(self, capture_dict, _type='first', _hasnext=False):
         if capture_dict:
             explain = ', '.join(f'\x1b[32m{k}\x1b[0m=\x1b[33m{v!r}\x1b[0m' for k, v in capture_dict.items())
-            sys.stderr.write(f'    with {explain} for the {_type} pattern{"; and" if _hasnext else "."}\n')
+            sys.stderr.write(f'        with {explain} for the {_type} pattern{"; and" if _hasnext else "."}\n')
             return True
 
     def explain_failure(self, xeger, regex1, regex2, full1, full2):
@@ -51,12 +51,13 @@ class Command(BaseCommand):
                 with_example = capture1 and capture2
             except:
                 pass
-            sys.stderr.write(f'patterns \x1b[34m{full1}\x1b[0m and \x1b[34m{full2}\x1b[0m overlap\n')
+            sys.stderr.write(f'[\x1b[31m✗\x1b[0m] patterns \x1b[34m{full1}\x1b[0m and \x1b[34m{full2}\x1b[0m overlap\n')
             if with_example:
-                sys.stderr.write(f'  for example with \x1b[35m{example!r}\x1b[0m\n')
+                sys.stderr.write(f'      for example with \x1b[35m{example!r}\x1b[0m\n')
                 gd2 = capture2.groupdict()
                 self.explain_capture(capture1.groupdict(), _hasnext=gd2)
                 self.explain_capture(gd2, _type='second')
+            sys.stderr.write(f'\n')
         return fail
 
 
@@ -80,9 +81,10 @@ class Command(BaseCommand):
             fail += subfail
         if verbose:
             sys.stdout.write(f'\n')
-            sys.stdout.write(f'patterns with no overlap: \n')
+            sys.stdout.write(f'patterns with no overlap found*: \n')
             for nooverlap in nooverlaps:
-                sys.stdout.write(f'  \x1b[34m{nooverlap}\x1b[0m\n')
+                sys.stdout.write(f'  [\x1b[32m✓\x1b[0m] \x1b[34m{nooverlap}\x1b[0m\n')
+            sys.stdout.write(f'* beware that the greenery package has some limitations regarding regexes, so it can not detect all overlaps.')
             sys.stdout.write(f'\n')
             sys.stdout.write(f'The examples are derived from a generator with seed \x1b[36m{seed}\x1b[0m.\n')
         exit(fail // 2)  # we count each failure twice
