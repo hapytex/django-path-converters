@@ -18,7 +18,6 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         # Positional arguments
         parser.add_argument("--seed", type=int)
-        parser.add_argument("--regex", type=gparse)
         parser.add_argument("--verbose", action=BooleanOptionalAction)
 
     def produce_regexes(self, resolver, prefix):
@@ -68,7 +67,7 @@ class Command(BaseCommand):
             seed = randint(0, 2**64)
         xeger = Xeger(limit=10, seed=seed)
 
-        nooverlap = []
+        nooverlaps = []
         for i, (full1, [regex1, subfail]) in enumerate(regexes, 1):
             for full2, regex2all in islice(regexes, i, None):
                 regex2 = regex2all[0]
@@ -76,12 +75,12 @@ class Command(BaseCommand):
                 subfail += hasfailed
                 regex2all[1] += hasfailed
             if verbose and not subfail:
-                nooverlap.append(full1)
+                nooverlaps.append(full1)
             fail += subfail
         if verbose:
             sys.stdout.write(f'\n')
             sys.stdout.write(f'patterns with no overlap: \n')
-            for nooverlap in nooverlap:
+            for nooverlap in nooverlaps:
                 sys.stdout.write(f'  \x1b[34m{nooverlap}\x1b[0m\n')
             sys.stdout.write(f'\n')
             sys.stdout.write(f'The examples are derived from a generator with seed \x1b[36m{seed}\x1b[0m.\n')
