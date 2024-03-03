@@ -13,7 +13,7 @@ from argparse import BooleanOptionalAction
 
 
 class Command(BaseCommand):
-    help = "Search if two or more URLs overlap"
+    help = "Search if two or more URLs overlap. The exit code shows the number of overlaps."
 
     def add_arguments(self, parser):
         # Positional arguments
@@ -54,9 +54,13 @@ class Command(BaseCommand):
             sys.stderr.write(f'[\x1b[31m✗\x1b[0m] patterns \x1b[34m{full1}\x1b[0m and \x1b[34m{full2}\x1b[0m overlap\n')
             if with_example:
                 sys.stderr.write(f'      for example with \x1b[35m{example!r}\x1b[0m\n')
-                gd2 = capture2.groupdict()
-                self.explain_capture(capture1.groupdict(), _hasnext=gd2)
-                self.explain_capture(gd2, _type='second')
+                groupdict1 = capture1.groupdict()
+                groupdict2 = capture2.groupdict()
+                self.explain_capture(groupdict1, _hasnext=groupdict2)
+                self.explain_capture(groupdict2, _type='second')
+                if str(regex2.difference(regex1)) == '[]':
+                    sys.stderr.write(f'    \x1b[33;40m!\x1b[0m since all captures by the second pattern are also captured by the first pattern,\n')
+                    sys.stderr.write(f'      the second pattern will never fire, you therefore probably should reorder the patterns.\n')
             sys.stderr.write(f'\n')
         return fail
 
@@ -80,11 +84,12 @@ class Command(BaseCommand):
                 nooverlaps.append(full1)
             fail += subfail
         if verbose:
-            sys.stdout.write(f'\n')
-            sys.stdout.write(f'patterns with no overlap found†: \n')
-            for nooverlap in nooverlaps:
-                sys.stdout.write(f'  [\x1b[32m✓\x1b[0m] \x1b[34m{nooverlap}\x1b[0m\n')
-            sys.stdout.write(f'† beware that the greenery package has some limitations regarding regexes, so it can not detect all overlaps.')
+            if nooverlaps:
+                sys.stdout.write(f'\n')
+                sys.stdout.write(f'patterns with no overlap found†: \n')
+                for nooverlap in nooverlaps:
+                    sys.stdout.write(f'  [\x1b[32m✓\x1b[0m] \x1b[34m{nooverlap}\x1b[0m\n')
+                sys.stdout.write(f'† beware that the greenery package has some limitations regarding regexes, so it can not detect all overlaps.')
             sys.stdout.write(f'\n')
             sys.stdout.write(f'The examples are derived from a generator with seed \x1b[36m{seed}\x1b[0m.\n')
         exit(fail // 2)  # we count each failure twice
