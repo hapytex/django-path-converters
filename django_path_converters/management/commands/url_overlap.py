@@ -41,6 +41,7 @@ class Command(BaseCommand):
     def explain_failure(self, xeger, regex1, regex2, full1, full2):
         intersect = str(regex1 & regex2)
         fail = str(intersect) != '[]'
+        reorder = False
         if fail:
             with_example = False
             example = None
@@ -61,8 +62,9 @@ class Command(BaseCommand):
                 if str(regex2.difference(regex1)) == '[]':
                     sys.stderr.write(f'    \x1b[33;40m!\x1b[0m since all captures by the second pattern are also captured by the first pattern,\n')
                     sys.stderr.write(f'      the second pattern will never fire, you therefore probably should reorder the patterns.\n')
+                    reorder = True
             sys.stderr.write(f'\n')
-        return fail
+        return fail, reorder
 
 
     def handle(self, *args, seed=None, verbose=False, **options):
@@ -77,7 +79,7 @@ class Command(BaseCommand):
         for i, (full1, [regex1, subfail]) in enumerate(regexes, 1):
             for full2, regex2all in islice(regexes, i, None):
                 regex2 = regex2all[0]
-                hasfailed = self.explain_failure(xeger, regex1, regex2, full1, full2)
+                hasfailed, to_reorder = self.explain_failure(xeger, regex1, regex2, full1, full2)
                 subfail += hasfailed
                 regex2all[1] += hasfailed
             if verbose and not subfail:
