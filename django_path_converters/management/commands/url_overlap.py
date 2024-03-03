@@ -60,7 +60,7 @@ class Command(BaseCommand):
                 self.explain_capture(groupdict1, _hasnext=groupdict2)
                 self.explain_capture(groupdict2, _type='second')
                 if str(regex2.difference(regex1)) == '[]':
-                    sys.stderr.write(f'    \x1b[33;40m!\x1b[0m since all captures by the second pattern are also captured by the first pattern,\n')
+                    sys.stderr.write(f'    \x1b[33;40m⇅\x1b[0m since all captures by the second pattern are also captured by the first pattern,\n')
                     sys.stderr.write(f'      the second pattern will never fire, you therefore probably should reorder the patterns.\n')
                     reorder = True
             sys.stderr.write(f'\n')
@@ -76,22 +76,31 @@ class Command(BaseCommand):
         xeger = Xeger(limit=10, seed=seed)
 
         nooverlaps = []
+        reorders = {}
         for i, (full1, [regex1, subfail]) in enumerate(regexes, 1):
             for full2, regex2all in islice(regexes, i, None):
                 regex2 = regex2all[0]
                 hasfailed, to_reorder = self.explain_failure(xeger, regex1, regex2, full1, full2)
+                if to_reorder:
+                    reorders.setdefault(full2, full1)
                 subfail += hasfailed
                 regex2all[1] += hasfailed
             if verbose and not subfail:
                 nooverlaps.append(full1)
             fail += subfail
+
+        if reorders:
+            sys.stderr.write('The following reorders are very likely:\n')
+            for key, val in reorders.items():
+                sys.stderr.write(f'  [\x1b[33m⇅\x1b[0m] \x1b[34m{key}\x1b[0m should be ordered before \x1b[34m{val}\x1b[0m\n')
+            sys.stderr.write('\n')
+
         if verbose:
             if nooverlaps:
-                sys.stdout.write(f'\n')
                 sys.stdout.write(f'patterns with no overlap found†: \n')
                 for nooverlap in nooverlaps:
                     sys.stdout.write(f'  [\x1b[32m✓\x1b[0m] \x1b[34m{nooverlap}\x1b[0m\n')
-                sys.stdout.write(f'† beware that the greenery package has some limitations regarding regexes, so it can not detect all overlaps.')
-            sys.stdout.write(f'\n')
+                sys.stdout.write(f'† beware that the greenery package has some limitations regarding regexes, so it can not detect all overlaps.\n')
+                sys.stdout.write(f'\n')
             sys.stdout.write(f'The examples are derived from a generator with seed \x1b[36m{seed}\x1b[0m.\n')
-        exit(fail // 2)  # we count each failure twice
+        exit((fail // 2) + len(reorders))  # we count each failure twice
