@@ -11,3 +11,5 @@ DATABASES = {
                  # If one doesn't exist, it will be created at migration time.
     }
 }
+
+ROOT_URLCONF = 'django_path_converters.urls'
