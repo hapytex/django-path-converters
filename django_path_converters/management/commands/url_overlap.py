@@ -94,4 +94,7 @@ class Command(BaseCommand):
                 sys.stdout.write(f'† beware that the greenery package has some limitations regarding regexes, so it can not detect all overlaps.')
             sys.stdout.write(f'\n')
             sys.stdout.write(f'The examples are derived from a generator with seed \x1b[36m{seed}\x1b[0m.\n')
+        status = fail // 2
+        if status:
+            status = ((status - 1) % 253) + 1
         exit(fail // 2)  # we count each failure twice
