@@ -73,7 +73,7 @@ class Command(BaseCommand):
         fail = 0
         if seed is None:
             seed = randint(0, 2**64)
-        xeger = Xeger(limit=10, seed=seed)
+        xeger = Xeger(limit=5, seed=seed)  # shorter URLs, make the problem clearer
 
         nooverlaps = []
         for i, (full1, [regex1, subfail]) in enumerate(regexes, 1):
