@@ -73,6 +73,7 @@ class PathConverter(type):
 class BaseConverter(metaclass=PathConverter):
     name_prefix = ''
     name_suffix = ''
+    help = ''
     pass_str = True
     to_types = ()
     from_types = ()
@@ -126,6 +127,7 @@ class BoolConverter(BaseConverter):
     yeas = {'yes', 'true', 't', 'y', '1', 'on'}
     regex = '[Yy]([Ee][Ss])?|[Tt]([Rr][Uu][Ee])?|[Oo][Nn]|1|[Ff]([Aa][Ll][Ss][Ee])?|[Nn][Oo]?|[Oo][Ff][Ff]|0'
     name = 'bool'
+    help = 'A boolean, can check the truthiness of any object, and thus also work with a list for example.'
     from_types = object
     to_types = bool
     examples = 'True', 'False', '1', '0', 'T', 'F', 'on', 'oFF', 'yes', 'NO'
@@ -139,6 +141,7 @@ class BoolConverter(BaseConverter):
 
 class NullBoolConverter(NullConverterMixin, BoolConverter):
     name = 'nullbool'
+    help = 'A boolean, can check the truthiness of any object, and thus also work with a list for example. None will map to None, null, or the empty string'
 
 
 class MetaCombinedConverter(type(BaseConverter)):
@@ -181,6 +184,7 @@ class AutoSlugConverter(BaseConverter, SlugConverter):
     slug_field = 'slug'
     regex = SlugConverter.regex
     examples = 'this-is-a-slug', 'slugifying-this-str'
+    help = 'For any object, looks for a .slug field, calls string on the slug or object, and slugifies this object.'
 
     def to_url(self, value):
         value = str(getattr(value, self.slug_field, value))
@@ -193,8 +197,9 @@ class UnicodeAutoSlugConverter(AutoSlugConverter):
 class FullIntConverter(IntConverter, BaseConverter):
     name = 'fullint'
     regex = f'[+-]?{IntConverter.regex}'
-    examples = '-12', '14', '25'
+    examples = '-12', '14', '25', '+7', '0'
     from_types = to_types = (int,)
+    help = 'Any integer, including positive, negative and zero.'
 
 class JsonConverter(BaseConverter):
     name = 'unsafejson'
@@ -216,6 +221,7 @@ class DateTimeConverter(BaseConverter):
     to_types = (datetime,)
     from_types = (datetime, date)
     examples = '2023-01-24T19:21:18Z', '2023-01-24T19:21:18+00:00', '2023-01-24T19:47:58'
+    help = 'A datetime stamp as specified by ISO 8601.'
 
     def to_python(self, value, date_format=None):
         date_format = date_format or self.date_format
@@ -246,6 +252,7 @@ class DateConverter(DateTimeConverter):
     regex = DATE_REGEX
     to_types = (date,)
     examples = '2023-01-21'
+    help = 'A date object, works with the %Y-%M-%d format.'
 
     def to_python(self, value, date_format=None):
         return super().to_python(value, date_format=date_format).date()
@@ -256,6 +263,7 @@ class MonthConverter(DateConverter):
     date_format = '%Y-%m'
     regex = '[0-9]{4}[-](?:0?[1-9]|1[0-2])'
     examples = '2023-01'
+    help = 'A date object, works with the %Y-%m format.'
 
 
 class WeekConverter(DateConverter):
@@ -265,6 +273,7 @@ class WeekConverter(DateConverter):
     examples = '2023-W03'
     week_format = '%u'
     week_day = '1'
+    help = 'A date object, works with the %G-W%V format.'
 
     def to_python(self, value, date_format=None):
         return super().to_python(f'{value}{self.week_day}', date_format or f'{self.date_format}{self.week_format}')
@@ -275,6 +284,7 @@ class DateRangeConverter(CombinedBaseConverter):
     from_date = DateConverter
     to_date = DateConverter
     examples = '1958-3-25/2019-11-25'
+    help = 'A range of two dates, specified by two %Y-%m-%d formats separated by a slash.'
 
 
 class ModelConverter(BaseConverter):
@@ -283,6 +293,7 @@ class ModelConverter(BaseConverter):
     to_types = (type(Model),)
     from_types = (type(Model), Model, Options, QuerySet, Manager)
     examples = 'auth/user'
+    help = 'A model class, not object, specified with the app name, a slash and the name of the model.'
 
     def to_python(self, value):
         from django.apps import apps
@@ -307,6 +318,7 @@ class ObjectConverter(ModelConverter):
     to_types = from_types = (Model,)
     examples = 'auth/group/123', 'auth/user/12'
     manager = None
+    help = 'A model object, specified by the app, the model name, and the primary key of that object, the three items are separated by slashes.'
 
     def create_object(self, model, pk):
         return get_object_or_404(model, pk=pk)
