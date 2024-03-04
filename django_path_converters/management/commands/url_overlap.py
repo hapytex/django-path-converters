@@ -92,7 +92,7 @@ class Command(BaseCommand):
         if reorders:
             sys.stderr.write('The following reorders are very likely:\n')
             for key, val in reorders.items():
-                sys.stderr.write(f'  [\x1b[33m⇅\x1b[0m] \x1b[34m{key}\x1b[0m should be ordered before \x1b[34m{val}\x1b[0m\n')
+                sys.stderr.write(f'  [\x1b[33m⇅\x1b[0m] \x1b[34m{key}\x1b[0m should be listed before \x1b[34m{val}\x1b[0m\n')
             sys.stderr.write('\n')
 
         if verbose:
