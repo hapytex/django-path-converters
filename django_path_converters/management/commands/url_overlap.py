@@ -73,7 +73,7 @@ class Command(BaseCommand):
         fail = 0
         if seed is None:
             seed = randint(0, 2**64)
-        xeger = Xeger(limit=10, seed=seed)
+        xeger = Xeger(limit=5, seed=seed)  # shorter URLs, make the problem clearer
 
         nooverlaps = []
         reorders = {}
@@ -103,4 +103,7 @@ class Command(BaseCommand):
                 sys.stdout.write(f'† beware that the greenery package has some limitations regarding regexes, so it can not detect all overlaps.\n')
                 sys.stdout.write(f'\n')
             sys.stdout.write(f'The examples are derived from a generator with seed \x1b[36m{seed}\x1b[0m.\n')
-        exit((fail // 2) + len(reorders))  # we count each failure twice
+        status = fail // 2 + len(reorders)
+        if status:
+            status = ((status - 1) % 253) + 1
+        exit(status)  # we count each failure twice

@@ -56,7 +56,7 @@ class PathConverter(type):
     def data_dict(cls):
         return {
             'name': cls.name,
-            'type': cls.to_types,
+            'to_types': cls.to_types,
             'examples': '\n'.join(cls.examples),
             'regex': cls.regex,
             'from_types': cls.from_types,
@@ -77,6 +77,7 @@ class BaseConverter(metaclass=PathConverter):
     pass_str = True
     to_types = ()
     from_types = ()
+    examples = ()
 
     def to_python(self, value):
         return value
@@ -199,6 +200,19 @@ class FullIntConverter(IntConverter, BaseConverter):
     examples = '-12', '14', '25', '+7', '0'
     from_types = to_types = (int,)
     help = 'Any integer, including positive, negative and zero.'
+
+class JsonConverter(BaseConverter):
+    name = 'unsafejson'
+    regex = '.*'
+    examples = 'null', 'true', '14', '[1]', '{"a": [1,4,2,5]}'
+    from_types = to_types = (object,)
+
+    def to_python(self, value):
+        return json.loads(value)
+
+    def to_url(self, value):
+        return json.dumps(value)
+
 
 class DateTimeConverter(BaseConverter):
     name = 'datetime'

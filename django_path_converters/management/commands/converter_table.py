@@ -1,7 +1,5 @@
 from django.core.management.base import BaseCommand
 from django.db.models import Count
-from catalog.models import SubGroup, Regime
-from catalog.cache import get_cached_frames
 from django_path_converters.converters import PathConverter
 
 import pandas as pd
@@ -51,19 +49,20 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         df = pd.DataFrame([klass.data_dict() for klass in PathConverter.registered]).sort_values('name')
 
-        df.rename(columns={'accepts': 'also accepts'}, inplace=True)
+        # df.rename(inplace=True)
 
         # quote_df(df, 'name', '`<', ':…>`')
         # quote_df(df, 'regex')
         # quote_df(df, 'type')
-        expl_df(df, 'also accepts')
+        expl_df(df, 'to_types')
+        expl_df(df, 'from_types')
 
         # df = df.set_index('name')
 
         print(df.to_html(formatters={
             'name': partial(codify, lef='<', rig=':…>'),
             'regex': codify,
-            'type': codify,
-            'also accepts': codify,
+            'to_types': codify,
+            'from_types': codify,
             'examples': codify,
         }, index=False, escape=False))

@@ -13,3 +13,8 @@ DATABASES = {
 }
 
 ROOT_URLCONF = 'django_path_converters.urls'
+DEBUG = True
+SECRET_KEY = 'verysecret'
+MIDDLEWARE = (
+    'django_path_converters.middleware.QueryBatcherMiddleware',
+)

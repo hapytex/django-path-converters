@@ -7,8 +7,45 @@ from django.utils.functional import LazyObject, empty
 from django_path_converters.utils import get_model_options, get_model, get_queryset, get_model_or_queryset
 
 
+class BatchLoaderManager:
+    # can be used if a queryset uses a diffrent database instead, to move if to a different "bucket"
+    def __init__(self):
+        self.loaders = {}
+
+    def __getitem__(self, db):
+        loader = self.loaders.get(db)
+        if loader is None:
+            loader = self.loaders[db] = BatchLoader(self)
+        return loader
+
+    def __setitem__(self, db, item):
+        loader = self.loaders.get(db)
+        if loader is None:
+            self.loaders[db] = item
+        else:
+            pass  # merge with the other loader
+
+
+class BatchLoader:
+    def __init__(self, manager, *items):
+        self.manager = manager
+        self.items = list(items)
+
+    def add(self, value):
+        self.items.add(value)
+
+    def _load(self):
+        db = None
+        for item in self.items:
+            # possible that these are already fetched
+            # we don't do forked querysets, since we assume that
+            # was for good reasons
+            if item._wrapped is not empty and not item._forked:
+                pass
+
+
 class ModelLazyStateObject(LazyObject):
-    def __init__(self, parent, queryset):
+    def __init__(self, parent):
         self.__dict__.update(_parent=parent)
         super().__init__()
 
@@ -29,13 +66,14 @@ class ModelLazyStateObject(LazyObject):
 
 
 class ModelLazyObject(LazyObject):
-    # TODO: setters for the fields that are known
     # set class fields, to avoid infinite loops when setting attributes
     _pk_field = 'pk'
     _pk = None
     _model_or_queryset = None
     _model = None
     _is_pk = True
+    _forked = False
+    _batcher = None
 
     @property
     def __class__(self):
@@ -51,7 +89,7 @@ class ModelLazyObject(LazyObject):
         else:
             return dir(wrapped)
 
-    def __init__(self, model_or_queryset, pk, pk_field='pk', check_field=True):
+    def __init__(self, model_or_queryset, pk, pk_field='pk', check_field=True, batcher=None):
         assert isinstance(model_or_queryset, (type(Model), Model, Options, Manager, QuerySet))
         # prevent loading the object by using a setter
         dic = self.__dict__
@@ -73,15 +111,19 @@ class ModelLazyObject(LazyObject):
             dic[model_pk] = pk
         else:
             dic[pk_field] = pk
+        if batcher is not None:
+            dic.update(_batcher=batcher)
         super().__init__()
 
     def with_queryset(self, model_or_queryset=None):
         if model_or_queryset is not None:
             assert get_model(model_or_queryset) == self._model
-        return self._with_queryset_unsafe(model_or_queryset)
+        result = self._with_queryset_unsafe(model_or_queryset)
+        self.__dict__.update(_forked=True)
+        return result
 
     def _with_queryset_unsafe(self, model_or_queryset=None):
-        return type(self)(model_or_queryset or self._model_or_queryset, self._pk, self._pk_field)
+        return type(self)(model_or_queryset or self._model_or_queryset, self._pk, self._pk_field, batcher=self._batcher)
 
     def with_queryset_update(self, model_or_queryset=None):
         self._model_or_queryset = model_or_queryset or self._model_or_queryset
@@ -89,7 +131,7 @@ class ModelLazyObject(LazyObject):
 
     @property
     def _state(self):
-        return ModelLazyStateObject(self, queryset=self._model_or_queryset)
+        return ModelLazyStateObject(self)
 
     def __bool__(self):
         return True
