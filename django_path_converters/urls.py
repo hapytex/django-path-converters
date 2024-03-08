@@ -8,6 +8,4 @@ urlpatterns = [
     path('foo/<path:ab>/', id),
     path('foo/bar/', id),
     path('<user.username:user>/<auth.group:group>/', link_group),
-    path('<unsafejson:item>/', test_json),
-    path('<path:rest>/', test_rest),
 ]
