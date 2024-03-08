@@ -12,6 +12,12 @@ import re
 from argparse import BooleanOptionalAction
 from django_path_converters.utils import strip_capture_groups
 
+ALL = parse_pattern('[\W\w]*').to_fsm().reduce()
+NONE = parse_pattern('[]').to_fsm().reduce()
+
+def parse_regex_to_fsm(value):
+    return parse_pattern(value).to_fsm().reduce()
+
 class Command(BaseCommand):
     help = "Search if two or more URLs overlap. The exit code shows the number of overlaps."
 
@@ -19,18 +25,24 @@ class Command(BaseCommand):
         # Positional arguments
         parser.add_argument("--seed", type=int)
         parser.add_argument("--verbose", action=BooleanOptionalAction)
+        parser.add_argument("--accept", type=parse_regex_to_fsm, default=(ALL,), nargs='*')
+        parser.add_argument("--reject", type=parse_regex_to_fsm, default=(NONE,), nargs='*')
 
-    def produce_regexes(self, resolver, prefix):
+    def produce_regexes(self, resolver, prefix, regex_filter=ALL):
         subregex = resolver.pattern.regex.pattern
         if subregex.startswith('^'):
             subregex = subregex[1:]
-        if subregex.endswith('\Z'):
+        if subregex.endswith('$'):
+            subregex = subregex[:-1]
+        if subregex.endswith(r'\Z'):
             subregex = subregex[:-2]
         regex = f'{prefix}{subregex}'
         if resolver.callback is not None:
-            yield regex, [parse_pattern(strip_capture_groups(regex)).to_fsm().reduce(), 0]
+            result = parse_pattern(strip_capture_groups(regex)).to_fsm().reduce()
+            if not (regex_filter & result).empty():
+                yield regex, [result, 0]
         for subresolver in getattr(resolver, 'url_patterns', ()):
-            yield from self.produce_regexes(subresolver, regex)
+            yield from self.produce_regexes(subresolver, regex, regex_filter=regex_filter)
 
     def explain_capture(self, capture_dict, _type='first', _hasnext=False):
         if capture_dict:
@@ -41,9 +53,13 @@ class Command(BaseCommand):
     def explain_failure(self, xeger, regex1, regex2, full1, full2):
         intersect = (regex1 & regex2).reduce()
         fail = not intersect.empty()
+        reorder = False
         if fail:
-            full_overlap = 'fully ' if (regex1 ^ regex2).empty() else ''
-            reorder = (regex2 - regex1).empty()
+            full_overlap = ''
+            if (regex1 ^ regex2).empty():
+                full_overlap = '\x1b[1mfully\x1b[0m '
+            else:
+                reorder = (regex2 - regex1).empty()
             with_example = False
             example = None
             try:
@@ -68,9 +84,10 @@ class Command(BaseCommand):
         return fail, reorder
 
 
-    def handle(self, *args, seed=None, verbose=False, **options):
+    def handle(self, *args, seed=None, verbose=False, accept=(ALL,), reject=(NONE,), **options):
         resolver = get_resolver()
-        regexes = list(self.produce_regexes(resolver, ''))
+        regex_filter = (reduce(operator.or_, accept) - reduce(operator.or_, reject)).reduce()
+        regexes = list(self.produce_regexes(resolver, '', regex_filter=regex_filter))
         fail = 0
         if seed is None:
             seed = randint(0, 2**64)
