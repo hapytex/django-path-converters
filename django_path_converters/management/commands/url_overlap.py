@@ -2,6 +2,8 @@ from itertools import islice
 
 from django.core.management.base import BaseCommand
 from django.urls import get_resolver
+from functools import reduce
+from operator import or_
 from greenery import parse as gparse
 from interegular import parse_pattern
 
@@ -86,7 +88,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, seed=None, verbose=False, accept=(ALL,), reject=(NONE,), **options):
         resolver = get_resolver()
-        regex_filter = (reduce(operator.or_, accept) - reduce(operator.or_, reject)).reduce()
+        regex_filter = (reduce(or_, accept) - reduce(or_, reject)).reduce()
         regexes = list(self.produce_regexes(resolver, '', regex_filter=regex_filter))
         fail = 0
         if seed is None:
