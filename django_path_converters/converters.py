@@ -93,6 +93,12 @@ class BaseConverter(metaclass=PathConverter):
     def __repr__(self):
         return f'<{self.name}:…>'
 
+    def __mod__(self, other):
+        class PathConverter(CombinedBaseConverter):
+            fst = self
+            snd = other
+        return PathConverter
+
 
 class NullConverterMixin:
     use_explicit_null = True

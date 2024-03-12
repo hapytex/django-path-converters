@@ -2,6 +2,8 @@ from itertools import islice
 
 from django.core.management.base import BaseCommand
 from django.urls import get_resolver
+from functools import reduce
+from operator import or_
 from greenery import parse as gparse
 from interegular import parse_pattern
 
@@ -86,7 +88,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, seed=None, verbose=False, accept=(ALL,), reject=(NONE,), **options):
         resolver = get_resolver()
-        regex_filter = (reduce(operator.or_, accept) - reduce(operator.or_, reject)).reduce()
+        regex_filter = (reduce(or_, accept) - reduce(or_, reject)).reduce()
         regexes = list(self.produce_regexes(resolver, '', regex_filter=regex_filter))
         fail = 0
         if seed is None:
@@ -94,15 +96,25 @@ class Command(BaseCommand):
         xeger = Xeger(limit=1, seed=seed)  # shorter URLs, make the problem clearer
 
         nooverlaps = []
+        reorders = {}
         for i, (full1, [regex1, subfail]) in enumerate(regexes, 1):
             for full2, regex2all in islice(regexes, i, None):
                 regex2 = regex2all[0]
                 hasfailed, to_reorder = self.explain_failure(xeger, regex1, regex2, full1, full2)
+                if to_reorder:
+                    reorders.setdefault(full2, full1)
                 subfail += hasfailed
                 regex2all[1] += hasfailed
             if verbose and not subfail:
                 nooverlaps.append(full1)
             fail += subfail
+
+        if reorders:
+            sys.stderr.write('The following reorders are very likely:\n')
+            for key, val in reorders.items():
+                sys.stderr.write(f'  [\x1b[33m⇅\x1b[0m] \x1b[34m{key}\x1b[0m should be listed before \x1b[34m{val}\x1b[0m\n')
+            sys.stderr.write('\n')
+
         if verbose:
             if nooverlaps:
                 sys.stdout.write(f'\n')
@@ -112,7 +124,7 @@ class Command(BaseCommand):
                 sys.stdout.write(f'† beware that not for every overlap, an example can be found, since greenery is a bit limited.')
             sys.stdout.write(f'\n')
             sys.stdout.write(f'The examples are derived from a generator with seed \x1b[36m{seed}\x1b[0m.\n')
-        status = fail // 2
+        status = fail // 2 + len(reorders)
         if status:
             status = ((status - 1) % 253) + 1
-        exit(fail // 2)  # we count each failure twi
+        exit(status)  # we count each failure twi
