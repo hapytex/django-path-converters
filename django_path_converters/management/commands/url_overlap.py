@@ -109,7 +109,7 @@ class Command(BaseCommand):
                 sys.stdout.write(f'patterns with no overlap found†: \n')
                 for nooverlap in nooverlaps:
                     sys.stdout.write(f'  [\x1b[32m✓\x1b[0m] \x1b[34m{nooverlap}\x1b[0m\n')
-                sys.stdout.write(f'† beware that the greenery package has some limitations regarding regexes, so it can not detect all overlaps.')
+                sys.stdout.write(f'† beware that not for every overlap, an example can be found, since greenery is a bit limited.')
             sys.stdout.write(f'\n')
             sys.stdout.write(f'The examples are derived from a generator with seed \x1b[36m{seed}\x1b[0m.\n')
         status = fail // 2
