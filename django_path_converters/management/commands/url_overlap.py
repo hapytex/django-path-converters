@@ -127,4 +127,5 @@ class Command(BaseCommand):
         status = fail // 2 + len(reorders)
         if status:
             status = ((status - 1) % 253) + 1
-        exit(status)  # we count each failure twi
+        # we count each failure twi
+        exit(status)
