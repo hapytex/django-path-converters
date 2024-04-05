@@ -14,12 +14,6 @@ object loads: these will *not* evaluate an object, unless it is necessary, and t
 ## Overview of the defined path converters
 
 <!-- path converters -->
-C:\Users\willem.vanonsem\catalog\venv\Scripts\python.exe -m django converter_table --settings=settings 
-System check identified some issues:
-
-WARNINGS:
-django_path_converters.Group: (models.W042) Auto-created primary key used when not defining a primary key type, by default 'django.db.models.AutoField'.
-        HINT: Configure the DEFAULT_AUTO_FIELD setting or the PathConvertersConfig.default_auto_field attribute to point to a subclass of AutoField, e.g. 'django.db.models.BigAutoField'.
 <table border="1" class="dataframe">
   <thead>
     <tr style="text-align: right;">

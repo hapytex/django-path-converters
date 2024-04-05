@@ -8,14 +8,14 @@ from django_path_converters.utils import get_model_options, get_model, get_query
 
 
 class BatchLoaderManager:
-    # can be used if a queryset uses a diffrent database instead, to move if to a different "bucket"
+    # can be used if a queryset uses a different database instead, to move if to a different "bucket"
     def __init__(self):
         self.loaders = {}
 
     def __getitem__(self, db):
         loader = self.loaders.get(db)
         if loader is None:
-            loader = self.loaders[db] = BatchLoader(self)
+            loader = self.loaders[db] = BatchLoader(self, db)
         return loader
 
     def __setitem__(self, db, item):
@@ -23,20 +23,32 @@ class BatchLoaderManager:
         if loader is None:
             self.loaders[db] = item
         else:
-            pass  # merge with the other loader
+            loader.add(*item.items)
 
 
 class BatchLoader:
-    def __init__(self, manager, *items):
+    def __init__(self, manager, db, *items):
         self.manager = manager
-        self.items = list(items)
+        self._db = db
+        self._items = {id(item): item for item in items}
 
-    def add(self, value):
-        self.items.add(value)
+    @property
+    def items(self):
+        return self._items.values()
+
+    def add(self, *values):
+        for value in values:
+            self._items[id(value)] = value
+
+    def migrate(self, *values):
+        _values = self._values
+        _db = self._db
+        for value in values:
+            pass
 
     def _load(self):
         db = None
-        for item in self.items:
+        for item in self._items.values():
             # possible that these are already fetched
             # we don't do forked querysets, since we assume that
             # was for good reasons
