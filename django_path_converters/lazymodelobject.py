@@ -58,15 +58,20 @@ class BatchLoader:
 
 class ModelLazyStateObject(LazyObject):
     def __init__(self, parent):
-        self.__dict__.update(_parent=parent)
+        self.__dict__.update(_parent=parent, db=get_queryset(parent._model_or_queryset).db, _mask_wrapped=False)
         super().__init__()
 
     __class__ = ModelState
     adding = False
 
+    def __getattr__(self, name, *args, **kwargs):
+        if name == '_mask_wrapped':
+            return False
+        return super().__getattr__(name, *args, **kwargs)
+
     @property
     def db(self):
-        return get_queryset(self._parent._model_or_queryset).db
+        return self.__dict__['db']
 
     def _setup(self):
         # we can't use `self.parent._state`, since that will point us back to self
@@ -147,6 +152,11 @@ class ModelLazyObject(LazyObject):
 
     def __bool__(self):
         return True
+
+    def __getattr__(self, name, *args, **kwargs):
+        if name == '_state':
+            return ModelLazyStateObject(self)
+        return super().__getattr__(name, *args, **kwargs)
 
     def _setup(self):
         result = self._wrapped = get_object_or_404(self._model_or_queryset, Q((self._pk_field, self._pk)))

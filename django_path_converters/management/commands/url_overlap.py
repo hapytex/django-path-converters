@@ -110,7 +110,7 @@ class Command(BaseCommand):
             fail += subfail
 
         if reorders:
-            sys.stderr.write('The following reorders are very likely:\n')
+            sys.stderr.write('The following reorders are very advisable (otherwise unreachable):\n')
             for key, val in reorders.items():
                 sys.stderr.write(f'  [\x1b[33m⇅\x1b[0m] \x1b[34m{key}\x1b[0m should be listed before \x1b[34m{val}\x1b[0m\n')
             sys.stderr.write('\n')

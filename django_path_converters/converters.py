@@ -53,13 +53,22 @@ class PathConverter(type):
             cls.registered.append(klass)
         return klass
 
+    def format_type(cls, klass):
+        if klass.__module__ != 'builtins':
+            return f'{klass.__module__}.{klass.__qualname__}'
+        return klass.__qualname__
+
+    def format_types(cls, klasses):
+        return '\n'.join(cls.format_type(klass) for klass in klasses)
+
     def data_dict(cls):
         return {
-            'name': cls.name,
-            'to_types': cls.to_types,
+            'name': repr(cls),
+            'to_types': cls.format_types(cls.to_types),
             'examples': '\n'.join(cls.examples),
             'regex': cls.regex,
-            'from_types': cls.from_types,
+            'from_types': cls.format_types(cls.from_types),
+            'comment': cls.__doc__ or '',
         }
 
 
@@ -350,6 +359,7 @@ class LazyObjectConverter(ObjectConverter):
 
     def create_object(self, model, pk):
         return ModelLazyObject(model, pk, pk_field=self.pk_field, check_field=self.check_field)
+
 
 class ChoicesConverter(BaseConverter):
     name_prefix = 'choices_'

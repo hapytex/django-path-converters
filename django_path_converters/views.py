@@ -1,12 +1,11 @@
 from django.http import HttpResponse
+from django.shortcuts import render
 
-def link_group(request, user, group):
-    return HttpResponse('link')
+def link_article(request, article, user):
+    article.author = user
+    article.save()
+    # print(user.username)
+    return HttpResponse('linked')
 
-def test_json(request, item):
-    print(item, type(item))
-    return HttpResponse(str(('json', item, type(item))))
-
-def test_rest(request, rest):
-    print(rest, type(rest))
-    return HttpResponse(str(('rest', rest, type(rest))))
+def link_article_template(request, article, user):
+    return render(request, 'paths/sample_form.html', {'article': article, 'user': user})
